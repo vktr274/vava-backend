@@ -8,6 +8,7 @@ Pred spustením treba načítať **Gradle závislosti** a následne sa aplikáci
 v IntellijIDEA alebo v príkazovom riadku.
 
 ```
-gradlew build --refresh-dependencies
+gradlew --refresh-dependencies
+gradlew build
 gradlew bootRun
 ```

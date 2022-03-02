@@ -4,4 +4,10 @@
 Aplikácia pre server využíva **Spring Boot** a **Spring Data JPA** s **Hibernate ORM** pre **PostgreSQL** databázu.
 
 ### Setup
-Pred spustením treba načítať **Gradle závislosti** a následne sa aplikácia spúšťa triedou **Main**.
+Pred spustením treba načítať **Gradle závislosti** a následne sa aplikácia spúšťa triedou **Main**
+v IntellijIDEA alebo v príkazovom riadku.
+
+```
+gradlew build --refresh-dependencies
+gradlew bootRun
+```

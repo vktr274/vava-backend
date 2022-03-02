@@ -6,7 +6,6 @@ plugins {
 
 group 'sk.vava.zalospevaci'
 version '1.0'
-sourceCompatibility = '11'
 
 configurations {
     compileOnly {

@@ -161,3 +161,4 @@ gradle-app.setting
 .classpath
 
 # End of https://www.toptal.com/developers/gitignore/api/gradle,java,intellij
+.idea

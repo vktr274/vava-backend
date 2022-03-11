@@ -13,11 +13,11 @@ public class OrderItem {
     @Column(name="id", nullable = false)
     private Long id;
 
-    @Column(name="order_id", nullable = false)
-    private Integer orderId;
+    @ManyToOne
+    @JoinColumn(name="order_id", nullable = false)
+    private Order order;
 
-    @Column(name="item_id", nullable = false)
-    private Integer itemId;
-
+    @ManyToOne
+    @JoinColumn(name="item_id", nullable = false)
+    private Item item;
 }
-

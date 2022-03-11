@@ -31,10 +31,11 @@ public class User {
     @Column(name="blocked", nullable = false)
     private boolean blocked = false;
 
-    @Column(name="phone_id")
-    private Integer phoneId = null;
+    @ManyToOne
+    @JoinColumn(name="phone_id")
+    private Phone phone = null;
 
-    @Column(name="address_id")
-    private Integer addressId = null;
+    @ManyToOne
+    @JoinColumn(name="address_id")
+    private Address address = null;
 }
-

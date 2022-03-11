@@ -20,7 +20,7 @@ CREATE TABLE phones (
 CREATE TABLE addresses (
     id SERIAL PRIMARY KEY,
     name VARCHAR NOT NULL,
-    street VARCHAR,
+    street VARCHAR DEFAULT NULL,
     building_number VARCHAR NOT NULL,
     city VARCHAR NOT NULL,
     state VARCHAR NOT NULL,

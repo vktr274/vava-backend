@@ -15,11 +15,11 @@ public class ReviewPhoto {
     @Column(name="id", nullable = false)
     private Long id;
 
-    @Column(name="photo_id", nullable = false)
-    private Integer photoId;
+    @ManyToOne
+    @JoinColumn(name="photo_id", nullable = false)
+    private Photo photo;
 
-    @Column(name="review_id", nullable = false)
-    private Integer reviewId;
-
+    @ManyToOne
+    @JoinColumn(name="review_id", nullable = false)
+    private Review review;
 }
-

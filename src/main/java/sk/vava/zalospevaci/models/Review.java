@@ -2,6 +2,7 @@ package sk.vava.zalospevaci.models;
 
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
@@ -21,15 +22,19 @@ public class Review {
     @Column(name="text")
     private String text;
 
-    @Column(name="restaurant_id", nullable = false)
-    private Integer restaurantId;
+    @ManyToOne
+    @JoinColumn(name="restaurant_id", nullable = false)
+    private Restaurant restaurant;
 
-    @Column(name="user_id", nullable = false)
-    private Integer userId;
+    @ManyToOne
+    @JoinColumn(name="user_id", nullable = false)
+    private User user;
 
     @CreationTimestamp
     @Column(name="created_at", updatable = false, nullable = false)
     private Timestamp createdAt = new Timestamp(System.currentTimeMillis());
 
+    @UpdateTimestamp
+    @Column(name="updated_at", nullable = false)
+    private Timestamp updatedAt = new Timestamp(System.currentTimeMillis());
 }
-

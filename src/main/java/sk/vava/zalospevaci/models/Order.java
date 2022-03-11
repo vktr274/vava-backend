@@ -19,8 +19,9 @@ public class Order {
     @Column(name="price", nullable = false)
     private Integer price;
 
-    @Column(name="user_id", nullable = false)
-    private Integer userId;
+    @ManyToOne
+    @JoinColumn(name="user_id", nullable = false)
+    private User user;
 
     @CreationTimestamp
     @Column(name="ordered_at", updatable = false, nullable = false)
@@ -30,5 +31,3 @@ public class Order {
     @Column(name="delivered_at")
     private Timestamp deliveredAt = null;
 }
-
-

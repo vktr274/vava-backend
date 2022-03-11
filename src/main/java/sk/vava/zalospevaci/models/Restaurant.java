@@ -25,13 +25,15 @@ public class Restaurant {
     @Column(name="blocked", nullable = false)
     private boolean blocked = false;
 
-    @Column(name="manager_id", nullable = false)
-    private Integer managerId;
+    @ManyToOne
+    @JoinColumn(name="manager_id", nullable = false)
+    private User manager;
 
-    @Column(name="phone_id", nullable = false)
-    private Integer phoneId;
+    @ManyToOne
+    @JoinColumn(name="phone_id", nullable = false)
+    private Phone phone;
 
-    @Column(name="address_id", nullable = false)
-    private Integer addressId;
+    @ManyToOne
+    @JoinColumn(name="address_id", nullable = false)
+    private Address address;
 }
-

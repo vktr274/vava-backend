@@ -17,7 +17,7 @@ public class Address {
     private String name;
 
     @Column(name="street")
-    private String street;
+    private String street = null;
 
     @Column(name="building_number", nullable = false)
     private String buildingNumber;

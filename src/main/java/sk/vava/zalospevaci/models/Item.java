@@ -22,11 +22,11 @@ public class Item {
     @Column(name="name", nullable = false)
     private String name;
 
-    @Column(name="photo_id")
-    private Integer photoId = null;
+    @ManyToOne
+    @JoinColumn(name="photo_id")
+    private Photo photo = null;
 
-    @Column(name="restaurant_id", nullable = false)
-    private Integer restaurantId;
-
+    @ManyToOne
+    @JoinColumn(name="restaurant_id", nullable = false)
+    private Restaurant restaurant;
 }
-

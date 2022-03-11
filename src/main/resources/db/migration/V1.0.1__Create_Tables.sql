@@ -109,6 +109,9 @@ CREATE TABLE reviews_photos (
 
 CREATE TABLE items (
     id SERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    description VARCHAR NOT NULL,
+    price INTEGER NOT NULL,
     restaurant_id INTEGER NOT NULL,
     photo_id INTEGER DEFAULT NULL,
     CONSTRAINT FK_ItemRestaurant

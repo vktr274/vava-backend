@@ -16,8 +16,8 @@ public class User {
     @Column(name="id", nullable = false)
     private Long id;
 
-    @Column(name="name", nullable = false)
-    private String name;
+    @Column(name="username", unique = true, nullable = false)
+    private String username;
 
     @Column(name="email", unique = true, nullable = false)
     private String email;
@@ -25,11 +25,16 @@ public class User {
     @Column(name="password", nullable = false)
     private String password;
 
-    @CreationTimestamp
-    @Column(name="created_at", updatable = false, nullable = false)
-    protected Timestamp createdAt;
+    @Column(name="role", nullable = false)
+    private String role;
 
-    @UpdateTimestamp
-    @Column(name="updated_at", nullable = false)
-    protected Timestamp updatedAt;
+    @Column(name="blocked", nullable = false)
+    private boolean blocked = false;
+
+    @Column(name="phone_id")
+    private Integer phoneId = null;
+
+    @Column(name="address_id")
+    private Integer addressId = null;
 }
+

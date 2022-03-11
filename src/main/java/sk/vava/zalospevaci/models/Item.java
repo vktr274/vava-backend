@@ -10,23 +10,23 @@ import javax.persistence.*;
 public class Item {
     @Id
     @GeneratedValue
-    @Column(name="id", nullable = false)
+    @Column(name="id", nullable=false)
     private Long id;
 
-    @Column(name="price", nullable = false)
+    @Column(name="price", nullable=false)
     private Integer price;
 
-    @Column(name="description", nullable = false)
+    @Column(name="description", nullable=false)
     private String description;
 
-    @Column(name="name", nullable = false)
+    @Column(name="name", nullable=false)
     private String name;
 
     @ManyToOne
-    @JoinColumn(name="photo_id")
+    @JoinColumn(name="photo_id", referencedColumnName="id")
     private Photo photo = null;
 
     @ManyToOne
-    @JoinColumn(name="restaurant_id", nullable = false)
+    @JoinColumn(name="restaurant_id", nullable=false, referencedColumnName="id")
     private Restaurant restaurant;
 }

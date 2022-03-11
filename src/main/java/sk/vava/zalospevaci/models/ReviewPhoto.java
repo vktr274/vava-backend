@@ -12,14 +12,14 @@ import java.sql.Timestamp;
 public class ReviewPhoto {
     @Id
     @GeneratedValue
-    @Column(name="id", nullable = false)
+    @Column(name="id", nullable=false)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name="photo_id", nullable = false)
+    @JoinColumn(name="photo_id", nullable=false, referencedColumnName="id")
     private Photo photo;
 
     @ManyToOne
-    @JoinColumn(name="review_id", nullable = false)
+    @JoinColumn(name="review_id", nullable=false, referencedColumnName="id")
     private Review review;
 }

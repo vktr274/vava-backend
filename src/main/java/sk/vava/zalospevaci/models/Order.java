@@ -13,18 +13,18 @@ import java.sql.Timestamp;
 public class Order {
     @Id
     @GeneratedValue
-    @Column(name="id", nullable = false)
+    @Column(name="id", nullable=false)
     private Long id;
 
-    @Column(name="price", nullable = false)
+    @Column(name="price", nullable=false)
     private Integer price;
 
     @ManyToOne
-    @JoinColumn(name="user_id", nullable = false)
+    @JoinColumn(name="user_id", nullable=false, referencedColumnName="id")
     private User user;
 
     @CreationTimestamp
-    @Column(name="ordered_at", updatable = false, nullable = false)
+    @Column(name="ordered_at", updatable=false, nullable=false)
     private Timestamp orderedAt = new Timestamp(System.currentTimeMillis());
 
     @UpdateTimestamp

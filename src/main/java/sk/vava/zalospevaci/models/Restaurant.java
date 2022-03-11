@@ -10,10 +10,10 @@ import javax.persistence.*;
 public class Restaurant {
     @Id
     @GeneratedValue
-    @Column(name="id", nullable = false)
+    @Column(name="id", nullable=false)
     private Long id;
 
-    @Column(name="name", nullable = false)
+    @Column(name="name", nullable=false)
     private String name;
 
     @Column(name="description")
@@ -22,18 +22,18 @@ public class Restaurant {
     @Column(name="url")
     private String url;
 
-    @Column(name="blocked", nullable = false)
+    @Column(name="blocked", nullable=false)
     private boolean blocked = false;
 
     @ManyToOne
-    @JoinColumn(name="manager_id", nullable = false)
+    @JoinColumn(name="manager_id", nullable=false, referencedColumnName="id")
     private User manager;
 
     @ManyToOne
-    @JoinColumn(name="phone_id", nullable = false)
+    @JoinColumn(name="phone_id", nullable=false, referencedColumnName="id")
     private Phone phone;
 
     @ManyToOne
-    @JoinColumn(name="address_id", nullable = false)
+    @JoinColumn(name="address_id", nullable=false, referencedColumnName="id")
     private Address address;
 }

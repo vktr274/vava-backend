@@ -20,7 +20,7 @@ public class UserController {
         return userService.findAllUsers();
     }
 
-    @PostMapping("/addUser")
+    @PostMapping("/users")
     public User addProduct(@RequestBody User user) {
         return userService.saveUser(user);
     }

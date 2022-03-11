@@ -10,9 +10,9 @@ import javax.persistence.*;
 public class Photo {
     @Id
     @GeneratedValue
-    @Column(name="id", nullable = false)
+    @Column(name="id", nullable=false)
     private Long id;
 
-    @Column(name="encoded", nullable = false)
+    @Column(name="encoded", nullable=false)
     private String username;
 }

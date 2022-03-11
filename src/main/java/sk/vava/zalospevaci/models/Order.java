@@ -24,11 +24,11 @@ public class Order {
 
     @CreationTimestamp
     @Column(name="ordered_at", updatable = false, nullable = false)
-    protected Timestamp orderedAt = new Timestamp(System.currentTimeMillis());
+    private Timestamp orderedAt = new Timestamp(System.currentTimeMillis());
 
     @UpdateTimestamp
     @Column(name="delivered_at")
-    protected Timestamp deliveredAt = null;
+    private Timestamp deliveredAt = null;
 }
 
 

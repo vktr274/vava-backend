@@ -29,7 +29,7 @@ public class Review {
 
     @CreationTimestamp
     @Column(name="created_at", updatable = false, nullable = false)
-    protected Timestamp createdAt = new Timestamp(System.currentTimeMillis());
+    private Timestamp createdAt = new Timestamp(System.currentTimeMillis());
 
 }
 

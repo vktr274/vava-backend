@@ -8,7 +8,7 @@ a **PostgreSQL** databázu.
 Na spustenie je potrebný JDK vo verzii 11 a taktiež je potrebné nastaviť systémovú premennú prostredia `JAVA_HOME` na
 cestu k adresáru, v ktorom je JDK nainštalovaný, napr. `C:\Program Files\Java\jdk-11.0.14`. 
 
-Tiež je potrebné nastaviť systémové premenné prostredia s údajmi k databáze - URL, meno databázy a heslo - nasledovne:
+Tiež je potrebné nastaviť systémové premenné prostredia s údajmi k databáze - URL, meno roly a heslo roly - nasledovne:
 
 `SPRING_DATASOURCE_URL` je URL v tvare `jdbc:postgresql://localhost:<port>/<nazov_databazy>?currentSchema=<nazov_schemy>`.
 

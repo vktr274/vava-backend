@@ -11,7 +11,7 @@ import sk.vava.zalospevaci.services.UserService;
 import java.util.List;
 
 @RestController
-public class UserController {
+public class AppController {
     @Autowired
     private UserService userService;
 

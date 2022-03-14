@@ -19,4 +19,8 @@ public class AddressService {
     public Address saveAddress(Address address) {
         return addressRepository.save(address);
     }
+
+    public void delAddress(Address address) {
+        addressRepository.delete(address);
+    }
 }

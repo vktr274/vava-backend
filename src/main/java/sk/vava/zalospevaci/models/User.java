@@ -35,4 +35,12 @@ public class User {
     @ManyToOne
     @JoinColumn(name="address_id", referencedColumnName="id")
     private Address address = null;
+
+    public Address getAddress() {
+        return address;
+    }
+
+    public Phone getPhone() {
+        return phone;
+    }
 }

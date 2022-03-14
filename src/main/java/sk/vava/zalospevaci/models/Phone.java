@@ -1,5 +1,6 @@
 package sk.vava.zalospevaci.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import javax.persistence.*;
@@ -14,6 +15,7 @@ public class Phone {
     private Long id;
 
     @Column(name="country_code", nullable=false)
+    @JsonProperty("country_code")
     private String countryCode;
 
     @Column(name="number", nullable=false)

@@ -1,5 +1,6 @@
 package sk.vava.zalospevaci.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import javax.persistence.*;
@@ -20,6 +21,7 @@ public class Address {
     private String street = null;
 
     @Column(name="building_number", nullable=false)
+    @JsonProperty("building_number")
     private String buildingNumber;
 
     @Column(name="city", nullable=false)

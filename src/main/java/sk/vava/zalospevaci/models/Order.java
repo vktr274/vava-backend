@@ -1,5 +1,6 @@
 package sk.vava.zalospevaci.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -25,9 +26,11 @@ public class Order {
 
     @CreationTimestamp
     @Column(name="ordered_at", updatable=false, nullable=false)
+    @JsonProperty("ordered_at")
     private Timestamp orderedAt = new Timestamp(System.currentTimeMillis());
 
     @UpdateTimestamp
     @Column(name="delivered_at")
+    @JsonProperty("delivered_at")
     private Timestamp deliveredAt = null;
 }

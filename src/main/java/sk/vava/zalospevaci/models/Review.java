@@ -1,5 +1,6 @@
 package sk.vava.zalospevaci.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -32,9 +33,11 @@ public class Review {
 
     @CreationTimestamp
     @Column(name="created_at", updatable=false, nullable=false)
+    @JsonProperty("created_at")
     private Timestamp createdAt = new Timestamp(System.currentTimeMillis());
 
     @UpdateTimestamp
     @Column(name="updated_at", nullable=false)
+    @JsonProperty("updated_at")
     private Timestamp updatedAt = new Timestamp(System.currentTimeMillis());
 }

@@ -19,4 +19,8 @@ public class PhoneService {
     public Phone savePhone(Phone phone) {
         return phoneRepository.save(phone);
     }
+
+    public void delPhone(Phone phone) {
+        phoneRepository.delete(phone);
+    }
 }

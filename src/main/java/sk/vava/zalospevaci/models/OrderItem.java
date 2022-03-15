@@ -20,4 +20,10 @@ public class OrderItem {
     @ManyToOne
     @JoinColumn(name="item_id", nullable=false, referencedColumnName="id")
     private Item item;
+
+    public OrderItem setDependencies(Item item, Order order){
+        this.item = item;
+        this.order = order;
+        return this;
+    }
 }

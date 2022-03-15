@@ -19,4 +19,9 @@ public class OrderService {
     public Order saveOrder(Order order) {
         return orderRepository.save(order);
     }
+
+    public Order deleteOrder(Long id) {
+        orderRepository.deleteById(id);
+        return null;
+    }
 }

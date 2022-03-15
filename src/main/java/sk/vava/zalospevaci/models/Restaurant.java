@@ -3,6 +3,8 @@ package sk.vava.zalospevaci.models;
 import lombok.Data;
 
 import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Table(name="restaurants")
@@ -25,6 +27,9 @@ public class Restaurant {
     @Column(name="blocked", nullable=false)
     private boolean blocked = false;
 
+    @OneToMany(mappedBy="restaurant", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Item> items = new ArrayList<>();
+
     @ManyToOne
     @JoinColumn(name="manager_id", nullable=false, referencedColumnName="id")
     private User manager;
@@ -36,4 +41,8 @@ public class Restaurant {
     @ManyToOne
     @JoinColumn(name="address_id", nullable=false, referencedColumnName="id")
     private Address address;
+
+    public Address getAddress() {
+        return address;
+    }
 }

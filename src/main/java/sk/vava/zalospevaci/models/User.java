@@ -43,4 +43,8 @@ public class User {
     public Phone getPhone() {
         return phone;
     }
+
+    public String getUsername() {
+        return username;
+    }
 }

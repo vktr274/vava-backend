@@ -16,7 +16,15 @@ public class ItemService {
         return itemRepository.findAll();
     }
 
+    public Item getItemById(Long id) {
+        return itemRepository.getById(id);
+    }
+
     public Item saveItem(Item item) {
         return itemRepository.save(item);
+    }
+
+    public void deleteItem(Long id) {
+        itemRepository.deleteById(id);
     }
 }

@@ -7,6 +7,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Table(name="orders")
@@ -19,6 +21,9 @@ public class Order {
 
     @Column(name="price", nullable=false)
     private Integer price;
+
+    @OneToMany(mappedBy="order", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<OrderItem> orderItems = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name="user_id", nullable=false, referencedColumnName="id")
@@ -33,4 +38,8 @@ public class Order {
     @Column(name="delivered_at")
     @JsonProperty("delivered_at")
     private Timestamp deliveredAt = null;
+
+    public User getUser() {
+        return user;
+    }
 }

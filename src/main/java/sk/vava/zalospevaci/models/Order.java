@@ -38,8 +38,4 @@ public class Order {
     @Column(name="delivered_at")
     @JsonProperty("delivered_at")
     private Timestamp deliveredAt = null;
-
-    public User getUser() {
-        return user;
-    }
 }

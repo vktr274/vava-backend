@@ -41,8 +41,4 @@ public class Restaurant {
     @ManyToOne
     @JoinColumn(name="address_id", nullable=false, referencedColumnName="id")
     private Address address;
-
-    public Address getAddress() {
-        return address;
-    }
 }

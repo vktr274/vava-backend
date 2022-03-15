@@ -29,12 +29,4 @@ public class Item {
     @ManyToOne
     @JoinColumn(name="restaurant_id", nullable=false, referencedColumnName="id")
     private Restaurant restaurant;
-
-    public Integer getPrice() {
-        return price;
-    }
-
-    public void setRestaurant(Restaurant restaurant) {
-        this.restaurant = restaurant;
-    }
 }

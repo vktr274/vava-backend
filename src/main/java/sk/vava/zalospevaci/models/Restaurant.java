@@ -34,11 +34,11 @@ public class Restaurant {
     @JoinColumn(name="manager_id", nullable=false, referencedColumnName="id")
     private User manager;
 
-    @ManyToOne
+    @OneToOne(cascade = CascadeType.REMOVE, orphanRemoval = true)
     @JoinColumn(name="phone_id", nullable=false, referencedColumnName="id")
     private Phone phone;
 
-    @ManyToOne
+    @OneToOne(cascade = CascadeType.REMOVE, orphanRemoval = true)
     @JoinColumn(name="address_id", nullable=false, referencedColumnName="id")
     private Address address;
 }

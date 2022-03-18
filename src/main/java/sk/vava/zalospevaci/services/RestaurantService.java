@@ -17,10 +17,14 @@ public class RestaurantService {
     }
 
     public Restaurant getRestaurantById(Long id) {
-        return restaurantRepository.getById(id);
+        return restaurantRepository.findById(id).get();
     }
 
     public Restaurant saveRestaurant(Restaurant restaurant) {
         return restaurantRepository.save(restaurant);
+    }
+
+    public void deleteRestaurantById(Long id) {
+        restaurantRepository.deleteById(id);
     }
 }

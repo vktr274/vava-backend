@@ -5,10 +5,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.bind.annotation.*;
 import sk.vava.zalospevaci.models.*;
 import sk.vava.zalospevaci.services.*;
 
+import javax.validation.ConstraintViolationException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,11 +33,26 @@ public class AppController {
     @Autowired
     private PhotoService photoService;
 
+    private Object catchtransactionException(TransactionSystemException e) {
+        Throwable t = e.getCause();
+        while ((t != null) && !(t instanceof ConstraintViolationException)) {
+            t = t.getCause();
+        }
+        ConstraintViolationException ex = (ConstraintViolationException) t;
+        List<String> exceptions = new ArrayList<>();
+        ex.getConstraintViolations().forEach(v -> exceptions.add(v.getMessage()));
+        return new ResponseEntity<>(exceptions, HttpStatus.BAD_REQUEST);
+    }
+
     /* USERS calls */
 
     @GetMapping("/users")
-    public List<User> getAllUsers() {
-        return userService.findAllUsers();
+    public Object getAllUsers() {
+        try {
+            return userService.findAllUsers();
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @GetMapping("/users/filters")
@@ -43,7 +60,7 @@ public class AppController {
         try {
             return userService.filterUsers(filters);
         } catch (Exception e) {
-            return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -57,7 +74,7 @@ public class AppController {
             User user = userService.getUserByLogin(username);
             return new ResponseEntity<>(user, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 
@@ -72,8 +89,10 @@ public class AppController {
             }
             user = userService.saveUser(user);
             return new ResponseEntity<>(user, HttpStatus.OK);
+        } catch (TransactionSystemException e) {
+            return catchtransactionException(e);
         } catch (Exception e) {
-            return new ResponseEntity<>("Cannot register user", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -85,7 +104,7 @@ public class AppController {
             userService.delUser(user);
             return new ResponseEntity<>("Deleted", HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>("Error", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 
@@ -132,6 +151,8 @@ public class AppController {
                 phoneService.delPhone(old_phone);
             }
             return new ResponseEntity<>(edit_user, HttpStatus.OK);
+        } catch (TransactionSystemException e) {
+            return catchtransactionException(e);
         } catch (Exception e) {
             return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
         }
@@ -169,6 +190,8 @@ public class AppController {
             jo.put("order_content", items_names);
 
             return new ResponseEntity<>(jo, HttpStatus.OK);
+        } catch (TransactionSystemException e) {
+            return catchtransactionException(e);
         } catch (Exception e) {
             return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
         }
@@ -180,7 +203,7 @@ public class AppController {
             orderService.deleteOrder(orderID);
             return new ResponseEntity<>("Deleted", HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>("Error", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 
@@ -190,35 +213,25 @@ public class AppController {
     public Object getItemsByRestaurant(@PathVariable(value = "restaurant_id") Long restaurID)
             throws ResourceNotFoundException {
         try {
-            return itemService.findByRestaurId(restaurID);
-        } catch (Exception e) {
-            return new ResponseEntity<>("Not found", HttpStatus.NOT_FOUND);
-        }
-    }
 
-    @GetMapping("/restaurants/filters")
-    public Object filterRestaurants(@RequestBody (required = false) JSONObject filters) {
-        try {
-            List<Restaurant> result = restaurantService.filterRestaurants(filters);
+            List<Item> result = itemService.findByRestaurId(restaurID);
             List<JSONObject> resJson = new ArrayList<>();
-            for (Restaurant rest : result) {
+            for (Item item : result) {
                 JSONObject tmp = new JSONObject();
-                tmp.appendField("name", rest.getName());
-                tmp.appendField("id", rest.getId());
-                tmp.appendField("address", rest.getAddress());
-                tmp.appendField("phone", rest.getPhone());
-                tmp.appendField("url", rest.getUrl());
-                tmp.appendField("blocked", rest.isBlocked());
+                tmp.put("price", item.getPrice());
+                tmp.put("description", item.getDescription());
+                tmp.put("name", item.getName());
+                tmp.put("restaurant_name", item.getRestaurant().getName());
                 resJson.add(tmp);
             }
             return resJson;
         } catch (Exception e) {
-            return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 
     @PostMapping("/items")
-    public Object addProduct(@RequestBody Item item, @RequestParam Long restaurId) {
+    public Object addProduct(@RequestBody Item item, @RequestParam Long restaurId){
         try {
             item.setRestaurant(restaurantService.getRestaurantById(restaurId));
             itemService.saveItem(item);
@@ -230,8 +243,10 @@ public class AppController {
             jo.put("restaurant_name", item.getRestaurant().getName());
 
             return new ResponseEntity<>(jo, HttpStatus.OK);
+        } catch (TransactionSystemException e) {
+            return catchtransactionException(e);
         } catch (Exception e) {
-            return new ResponseEntity<>("Item cannot be added", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -240,8 +255,8 @@ public class AppController {
         try {
             itemService.deleteItemById(itemID);
             return new ResponseEntity<>("Deleted", HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>("Error", HttpStatus.NOT_FOUND);
+        }  catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 
@@ -284,6 +299,8 @@ public class AppController {
             jo.put("restaurant_name", edit_item.getRestaurant().getName());
 
             return new ResponseEntity<>(jo, HttpStatus.OK);
+        } catch (TransactionSystemException e) {
+            return catchtransactionException(e);
         } catch (Exception e) {
             return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
         }
@@ -292,8 +309,41 @@ public class AppController {
     /* RESTAURANTS calls */
 
     @GetMapping("/restaurants")
-    public List<Restaurant> getAllRestaurants() {
-        return restaurantService.findAllRestaurants();
+    public Object getAllRestaurants() {
+        List<Restaurant> result = restaurantService.findAllRestaurants();
+        List<JSONObject> resJson = new ArrayList<>();
+        for (Restaurant rest : result) {
+            JSONObject tmp = new JSONObject();
+            tmp.appendField("name", rest.getName());
+            tmp.appendField("id", rest.getId());
+            tmp.appendField("address", rest.getAddress());
+            tmp.appendField("phone", rest.getPhone());
+            tmp.appendField("url", rest.getUrl());
+            tmp.appendField("blocked", rest.isBlocked());
+            resJson.add(tmp);
+        }
+        return resJson;
+    }
+
+    @GetMapping("/restaurants/filters")
+    public Object filterRestaurants(@RequestBody (required = false) JSONObject filters) {
+        try {
+            List<Restaurant> result = restaurantService.filterRestaurants(filters);
+            List<JSONObject> resJson = new ArrayList<>();
+            for (Restaurant rest : result) {
+                JSONObject tmp = new JSONObject();
+                tmp.appendField("name", rest.getName());
+                tmp.appendField("id", rest.getId());
+                tmp.appendField("address", rest.getAddress());
+                tmp.appendField("phone", rest.getPhone());
+                tmp.appendField("url", rest.getUrl());
+                tmp.appendField("blocked", rest.isBlocked());
+                resJson.add(tmp);
+            }
+            return resJson;
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
     @PostMapping("/restaurants")
@@ -304,6 +354,8 @@ public class AppController {
             addressService.saveAddress(restaurant.getAddress());
             Restaurant res = restaurantService.saveRestaurant(restaurant);
             return new ResponseEntity<>(res, HttpStatus.OK);
+        } catch (TransactionSystemException e) {
+            return catchtransactionException(e);
         } catch (Exception e) {
             return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
         }
@@ -315,7 +367,7 @@ public class AppController {
             restaurantService.deleteRestaurantById(restaurID);
             return new ResponseEntity<>("Deleted", HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>("Error", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 }

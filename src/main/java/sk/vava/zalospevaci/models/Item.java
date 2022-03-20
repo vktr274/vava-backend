@@ -3,6 +3,8 @@ package sk.vava.zalospevaci.models;
 import lombok.Data;
 
 import javax.persistence.*;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.Size;
 
 @Data
 @Table(name="items")
@@ -14,9 +16,11 @@ public class Item {
     private Long id;
 
     @Column(name="price", nullable=false)
+    @Min(value = 1, message = "Price cannot be lower than 1")
     private Integer price;
 
     @Column(name="description", nullable=false)
+    @Size(max = 10, message = "Too many symbols (255 max)")
     private String description;
 
     @Column(name="name", nullable=false)

@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import java.sql.Timestamp;
 
 @Data
@@ -18,6 +20,8 @@ public class Review {
     private Long id;
 
     @Column(name="score", nullable=false)
+    @Min(value = 1, message = "Incorrect score, [1, 10] only")
+    @Max(value = 10, message = "Incorrect score, [1, 10] only")
     private Integer score;
 
     @Column(name="text")

@@ -3,6 +3,8 @@ package sk.vava.zalospevaci.models;
 import lombok.Data;
 
 import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Table(name="users")
@@ -13,6 +15,7 @@ public class User {
     @Column(name="id", nullable=false)
     private Long id;
 
+//    @Filter(name = "usernameFilter", condition = "username ILIKE :username%")
     @Column(name="username", unique=true, nullable=false)
     private String username;
 
@@ -28,11 +31,14 @@ public class User {
     @Column(name="blocked", nullable=false)
     private boolean blocked = false;
 
-    @ManyToOne
+    @OneToMany(mappedBy="user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Review> reviews = new ArrayList<>();
+
+    @OneToOne(cascade = CascadeType.REMOVE, orphanRemoval = true)
     @JoinColumn(name="phone_id", referencedColumnName="id")
     private Phone phone = null;
 
-    @ManyToOne
+    @OneToOne(cascade = CascadeType.REMOVE, orphanRemoval = true)
     @JoinColumn(name="address_id", referencedColumnName="id")
     private Address address = null;
 }

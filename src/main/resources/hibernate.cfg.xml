@@ -19,6 +19,10 @@
         <mapping class="sk.vava.zalospevaci.models.User" />
         <mapping class="sk.vava.zalospevaci.models.Phone" />
         <mapping class="sk.vava.zalospevaci.models.Address" />
+        <mapping class="sk.vava.zalospevaci.models.Restaurant" />
+        <mapping class="sk.vava.zalospevaci.models.Review" />
+        <mapping class="sk.vava.zalospevaci.models.Item" />
+        <mapping class="sk.vava.zalospevaci.models.Photo" />
 
     </session-factory>
 </hibernate-configuration>

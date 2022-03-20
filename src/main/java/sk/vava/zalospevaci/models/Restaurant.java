@@ -28,6 +28,9 @@ public class Restaurant {
     private boolean blocked = false;
 
     @OneToMany(mappedBy="restaurant", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Review> reviews = new ArrayList<>();
+
+    @OneToMany(mappedBy="restaurant", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Item> items = new ArrayList<>();
 
     @ManyToOne

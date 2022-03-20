@@ -38,6 +38,15 @@ public class AppController {
         return userService.findAllUsers();
     }
 
+    @GetMapping("/users/filters")
+    public Object filterUsers(@RequestBody (required = false) JSONObject filters) {
+        try {
+            return userService.filterUsers(filters);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
+        }
+    }
+
     /*
     * GET method to get info about user with {username} specified
     * */
@@ -184,6 +193,27 @@ public class AppController {
             return itemService.findByRestaurId(restaurID);
         } catch (Exception e) {
             return new ResponseEntity<>("Not found", HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @GetMapping("/restaurants/filters")
+    public Object filterRestaurants(@RequestBody (required = false) JSONObject filters) {
+        try {
+            List<Restaurant> result = restaurantService.filterRestaurants(filters);
+            List<JSONObject> resJson = new ArrayList<>();
+            for (Restaurant rest : result) {
+                JSONObject tmp = new JSONObject();
+                tmp.appendField("name", rest.getName());
+                tmp.appendField("id", rest.getId());
+                tmp.appendField("address", rest.getAddress());
+                tmp.appendField("phone", rest.getPhone());
+                tmp.appendField("url", rest.getUrl());
+                tmp.appendField("blocked", rest.isBlocked());
+                resJson.add(tmp);
+            }
+            return resJson;
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
         }
     }
 

@@ -33,7 +33,7 @@ public class AppController {
     @Autowired
     private PhotoService photoService;
 
-    private Object catchtransactionException(TransactionSystemException e) {
+    private List<String> catchTransactionException(TransactionSystemException e) {
         Throwable t = e.getCause();
         while ((t != null) && !(t instanceof ConstraintViolationException)) {
             t = t.getCause();
@@ -41,45 +41,41 @@ public class AppController {
         ConstraintViolationException ex = (ConstraintViolationException) t;
         List<String> exceptions = new ArrayList<>();
         ex.getConstraintViolations().forEach(v -> exceptions.add(v.getMessage()));
-        return new ResponseEntity<>(exceptions, HttpStatus.BAD_REQUEST);
+        return exceptions;
     }
 
     /* USERS calls */
 
     @GetMapping("/users")
-    public Object getAllUsers() {
+    public ResponseEntity<List<User>> filterUsers(@RequestBody (required = false) JSONObject filters) {
         try {
-            return userService.findAllUsers();
+            return new ResponseEntity<>(
+                    filters == null ? userService.findAllUsers() : userService.filterUsers(filters),
+                    HttpStatus.OK
+            );
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
-    }
-
-    @GetMapping("/users/filters")
-    public Object filterUsers(@RequestBody (required = false) JSONObject filters) {
-        try {
-            return userService.filterUsers(filters);
-        } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
     /*
     * GET method to get info about user with {username} specified
     * */
-    @GetMapping("/user")
-    public Object getUserByLogin(@RequestParam String username)
+    @GetMapping("/users/{username}")
+    public ResponseEntity<User> getUserByLogin(@PathVariable(value = "username") String username)
             throws ResourceNotFoundException {
         try {
             User user = userService.getUserByLogin(username);
             return new ResponseEntity<>(user, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
-    @PostMapping("/register")
-    public Object registerUser(@RequestBody (required = false) User user) {
+    @PostMapping("/users")
+    public ResponseEntity<User> registerUser(@RequestBody (required = false) User user) {
         try {
             if (user.getAddress() != null) {
                 addressService.saveAddress(user.getAddress());
@@ -88,36 +84,30 @@ public class AppController {
                 phoneService.savePhone(user.getPhone());
             }
             user = userService.saveUser(user);
-            return new ResponseEntity<>(user, HttpStatus.OK);
-        } catch (TransactionSystemException e) {
-            return catchtransactionException(e);
+            return new ResponseEntity<>(user, HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
     @DeleteMapping("/users/{id}")
-    public Object delUser(@PathVariable(value = "id") Long userID)
+    public ResponseEntity<HttpStatus> delUser(@PathVariable(value = "id") Long userID)
             throws ResourceNotFoundException {
         try {
             User user = userService.getUserById(userID);
             userService.delUser(user);
-            return new ResponseEntity<>("Deleted", HttpStatus.OK);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
-    @PutMapping("/user/{id}")
-    public Object editUser(@RequestBody (required=false) User user, @PathVariable(value = "id") Long userID) {
+    @PutMapping("/users/{id}")
+    public ResponseEntity<User> editUser(@RequestBody User user, @PathVariable(value = "id") Long userID) {
         try {
-            if (user == null) { // if json body of request is empty
-                return new ResponseEntity<>("Body of request cannot be empty and shout contain new user data", HttpStatus.BAD_REQUEST);
-            }
             User edit_user = userService.getUserById(userID);
-            if (user.getRole() != null && !user.getRole().equals(edit_user.getRole())) { // if we want to change user's role -> error
-                return new ResponseEntity<>("Role cannot be changed", HttpStatus.BAD_REQUEST);
-            }
             if (user.getUsername() != null) {
                 edit_user.setUsername(user.getUsername());
             }
@@ -151,17 +141,16 @@ public class AppController {
                 phoneService.delPhone(old_phone);
             }
             return new ResponseEntity<>(edit_user, HttpStatus.OK);
-        } catch (TransactionSystemException e) {
-            return catchtransactionException(e);
         } catch (Exception e) {
-            return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
     /* ORDERS calls */
 
     @PostMapping("/orders")
-    public Object addOrder(@RequestParam List<Long> mealsId, @RequestParam Long userId) {
+    public ResponseEntity<JSONObject> addOrder(@RequestParam List<Long> mealsId, @RequestParam Long userId) {
         try {
             User user = userService.getUserById(userId);
             List<Item> order_items = new ArrayList<>();
@@ -189,32 +178,32 @@ public class AppController {
             }
             jo.put("order_content", items_names);
 
-            return new ResponseEntity<>(jo, HttpStatus.OK);
-        } catch (TransactionSystemException e) {
-            return catchtransactionException(e);
+            return new ResponseEntity<>(jo, HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
     @DeleteMapping("/orders/{id}")
-    public Object deleteOrder(@PathVariable(value = "id") Long orderID) {
+    public ResponseEntity<HttpStatus> deleteOrder(@PathVariable(value = "id") Long orderID) {
         try {
             orderService.deleteOrder(orderID);
-            return new ResponseEntity<>("Deleted", HttpStatus.OK);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
     /* ITEMS calls */
 
     @GetMapping("/items/{restaurant_id}")
-    public Object getItemsByRestaurant(@PathVariable(value = "restaurant_id") Long restaurID)
+    public ResponseEntity<List<JSONObject>> getItemsByRestaurant(@PathVariable(value = "restaurant_id") Long restaurantID)
             throws ResourceNotFoundException {
         try {
 
-            List<Item> result = itemService.findByRestaurId(restaurID);
+            List<Item> result = itemService.findByRestaurId(restaurantID);
             List<JSONObject> resJson = new ArrayList<>();
             for (Item item : result) {
                 JSONObject tmp = new JSONObject();
@@ -224,16 +213,17 @@ public class AppController {
                 tmp.put("restaurant_name", item.getRestaurant().getName());
                 resJson.add(tmp);
             }
-            return resJson;
+            return new ResponseEntity<>(resJson, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
     @PostMapping("/items")
-    public Object addProduct(@RequestBody Item item, @RequestParam Long restaurId){
+    public ResponseEntity<JSONObject> addProduct(@RequestBody Item item, @RequestParam Long restaurantID){
         try {
-            item.setRestaurant(restaurantService.getRestaurantById(restaurId));
+            item.setRestaurant(restaurantService.getRestaurantById(restaurantID));
             itemService.saveItem(item);
 
             JSONObject jo = new JSONObject();
@@ -242,30 +232,27 @@ public class AppController {
             jo.put("name", item.getName());
             jo.put("restaurant_name", item.getRestaurant().getName());
 
-            return new ResponseEntity<>(jo, HttpStatus.OK);
-        } catch (TransactionSystemException e) {
-            return catchtransactionException(e);
+            return new ResponseEntity<>(jo, HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
     @DeleteMapping("/items/{id}")
-    public Object deleteProduct(@PathVariable(value = "id") Long itemID) {
+    public ResponseEntity<HttpStatus> deleteProduct(@PathVariable(value = "id") Long itemID) {
         try {
             itemService.deleteItemById(itemID);
-            return new ResponseEntity<>("Deleted", HttpStatus.OK);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }  catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
-    @PutMapping("/item/{id}")
-    public Object editItem(@RequestBody (required=false) Item item, @PathVariable(value = "id") Long itemID) {
+    @PutMapping("/items/{id}")
+    public ResponseEntity<JSONObject> editItem(@RequestBody Item item, @PathVariable(value = "id") Long itemID) {
         try {
-            if (item == null) { // if json body of request is empty
-                return new ResponseEntity<>("Body of request cannot be empty and shout contain new user data", HttpStatus.BAD_REQUEST);
-            }
             Item edit_item = itemService.getItemById(itemID);
             if (item.getName() != null) {
                 edit_item.setName(item.getName());
@@ -275,9 +262,6 @@ public class AppController {
             }
             if (item.getPrice() != null) {
                 edit_item.setPrice(item.getPrice());
-            }
-            if (item.getRestaurant() != null && item.getRestaurant() != edit_item.getRestaurant()) {
-                return new ResponseEntity<>("Restaurant cannot be changed", HttpStatus.BAD_REQUEST);
             }
             Photo old_photo = null;
             if (item.getPhoto() != null) {
@@ -299,36 +283,20 @@ public class AppController {
             jo.put("restaurant_name", edit_item.getRestaurant().getName());
 
             return new ResponseEntity<>(jo, HttpStatus.OK);
-        } catch (TransactionSystemException e) {
-            return catchtransactionException(e);
         } catch (Exception e) {
-            return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
     /* RESTAURANTS calls */
 
     @GetMapping("/restaurants")
-    public Object getAllRestaurants() {
-        List<Restaurant> result = restaurantService.findAllRestaurants();
-        List<JSONObject> resJson = new ArrayList<>();
-        for (Restaurant rest : result) {
-            JSONObject tmp = new JSONObject();
-            tmp.appendField("name", rest.getName());
-            tmp.appendField("id", rest.getId());
-            tmp.appendField("address", rest.getAddress());
-            tmp.appendField("phone", rest.getPhone());
-            tmp.appendField("url", rest.getUrl());
-            tmp.appendField("blocked", rest.isBlocked());
-            resJson.add(tmp);
-        }
-        return resJson;
-    }
-
-    @GetMapping("/restaurants/filters")
-    public Object filterRestaurants(@RequestBody (required = false) JSONObject filters) {
+    public ResponseEntity<List<JSONObject>> filterRestaurants(@RequestBody (required = false) JSONObject filters) {
         try {
-            List<Restaurant> result = restaurantService.filterRestaurants(filters);
+            List<Restaurant> result = filters == null
+                    ? restaurantService.findAllRestaurants()
+                    : restaurantService.filterRestaurants(filters);
             List<JSONObject> resJson = new ArrayList<>();
             for (Restaurant rest : result) {
                 JSONObject tmp = new JSONObject();
@@ -340,34 +308,35 @@ public class AppController {
                 tmp.appendField("blocked", rest.isBlocked());
                 resJson.add(tmp);
             }
-            return resJson;
+            return new ResponseEntity<>(resJson, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
     @PostMapping("/restaurants")
-    public Object addRestaurant(@RequestBody Restaurant restaurant, @RequestParam Long managerId) {
+    public ResponseEntity<Restaurant> addRestaurant(@RequestBody Restaurant restaurant, @RequestParam Long managerId) {
         try {
             restaurant.setManager(userService.getUserById(managerId));
             phoneService.savePhone(restaurant.getPhone());
             addressService.saveAddress(restaurant.getAddress());
             Restaurant res = restaurantService.saveRestaurant(restaurant);
-            return new ResponseEntity<>(res, HttpStatus.OK);
-        } catch (TransactionSystemException e) {
-            return catchtransactionException(e);
+            return new ResponseEntity<>(res, HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
     @DeleteMapping("/restaurants/{id}")
-    public Object deleteRestaurant(@PathVariable(value = "id") Long restaurID) {
+    public ResponseEntity<HttpStatus> deleteRestaurant(@PathVariable(value = "id") Long restaurantID) {
         try {
-            restaurantService.deleteRestaurantById(restaurID);
-            return new ResponseEntity<>("Deleted", HttpStatus.OK);
+            restaurantService.deleteRestaurantById(restaurantID);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 }

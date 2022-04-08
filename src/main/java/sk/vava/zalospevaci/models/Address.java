@@ -32,4 +32,13 @@ public class Address {
 
     @Column(name="postcode", nullable=false)
     private String postcode;
+
+    public void setData(Address newAddr) {
+        this.name = newAddr.getName();
+        this.street = newAddr.getStreet();
+        this.buildingNumber = newAddr.getBuildingNumber();
+        this.city = newAddr.getCity();
+        this.state = newAddr.getState();
+        this.postcode = newAddr.getPostcode();
+    }
 }

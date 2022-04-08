@@ -23,4 +23,9 @@ public class Phone {
     @Column(name="number", nullable=false)
     @Pattern(regexp = "^[0-9]{9}$", message = "Incorrect phone number format")
     private String number;
+
+    public void setData(Phone newPhone) {
+        this.countryCode = newPhone.getCountryCode();
+        this.number = newPhone.getNumber();
+    }
 }

@@ -13,6 +13,6 @@ public class Photo {
     @Column(name="id", nullable=false)
     private Long id;
 
-    @Column(name="encoded", nullable=false)
-    private String username;
+    @Column(name="path", nullable=false)
+    private String path;
 }

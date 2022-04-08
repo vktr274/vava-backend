@@ -5,12 +5,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.bind.annotation.*;
 import sk.vava.zalospevaci.models.*;
 import sk.vava.zalospevaci.services.*;
 
-import javax.validation.ConstraintViolationException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,17 +30,6 @@ public class AppController {
     private RestaurantService restaurantService;
     @Autowired
     private PhotoService photoService;
-
-    private List<String> catchTransactionException(TransactionSystemException e) {
-        Throwable t = e.getCause();
-        while ((t != null) && !(t instanceof ConstraintViolationException)) {
-            t = t.getCause();
-        }
-        ConstraintViolationException ex = (ConstraintViolationException) t;
-        List<String> exceptions = new ArrayList<>();
-        ex.getConstraintViolations().forEach(v -> exceptions.add(v.getMessage()));
-        return exceptions;
-    }
 
     /* USERS calls */
 
@@ -107,40 +94,40 @@ public class AppController {
     @PutMapping("/users/{id}")
     public ResponseEntity<User> editUser(@RequestBody User user, @PathVariable(value = "id") Long userID) {
         try {
-            User edit_user = userService.getUserById(userID);
+            User editUser = userService.getUserById(userID);
             if (user.getUsername() != null) {
-                edit_user.setUsername(user.getUsername());
+                editUser.setUsername(user.getUsername());
             }
             if (user.getEmail() != null) {
-                edit_user.setEmail(user.getEmail());
+                editUser.setEmail(user.getEmail());
             }
             if (user.getPassword() != null) {
-                edit_user.setPassword(user.getPassword());
+                editUser.setPassword(user.getPassword());
             }
-            Address old_addr = null;
+            Address oldAddr = null;
             if (user.getAddress() != null) {
-                old_addr = edit_user.getAddress();
-                edit_user.setAddress(user.getAddress());
+                Address newAddr = user.getAddress();
+                oldAddr = editUser.getAddress();
+                if (oldAddr != null) { // if user had phone before
+                    oldAddr.setData(newAddr);
+                    addressService.saveAddress(oldAddr);
+                } else { // if there was no phone
+                    editUser.setAddress(addressService.saveAddress(user.getAddress()));
+                }
             }
-            Phone old_phone = null;
+            Phone oldPhone = null;
             if (user.getPhone() != null) {
-                old_phone = edit_user.getPhone();
-                edit_user.setPhone(user.getPhone());
+                Phone newPhone = user.getPhone();
+                oldPhone = editUser.getPhone();
+                if (oldPhone != null) { // if user had phone before
+                    oldPhone.setData(newPhone);
+                    phoneService.savePhone(oldPhone);
+                } else { // if there was no phone
+                    editUser.setPhone(phoneService.savePhone(user.getPhone()));
+                }
             }
-            if (edit_user.getAddress() != null) { // save new address
-                addressService.saveAddress(edit_user.getAddress());
-            }
-            if (edit_user.getPhone() != null) { //save new phone
-                phoneService.savePhone(edit_user.getPhone());
-            }
-            edit_user = userService.updateUser(edit_user);
-            if (old_addr != null) { // delete old address
-                addressService.delAddress(old_addr);
-            }
-            if (old_phone != null) { // delete old phone
-                phoneService.delPhone(old_phone);
-            }
-            return new ResponseEntity<>(edit_user, HttpStatus.OK);
+            editUser = userService.updateUser(editUser);
+            return new ResponseEntity<>(editUser, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -153,30 +140,30 @@ public class AppController {
     public ResponseEntity<JSONObject> addOrder(@RequestParam List<Long> mealsId, @RequestParam Long userId) {
         try {
             User user = userService.getUserById(userId);
-            List<Item> order_items = new ArrayList<>();
+            List<Item> orderItems = new ArrayList<>();
             for (Long id : mealsId) {
-                order_items.add(itemService.getItemById(id));
+                orderItems.add(itemService.getItemById(id));
             }
             Order order = new Order();
             order.setUser(user);
             Integer price = 0;
-            for (Item item : order_items) {
+            for (Item item : orderItems) {
                 price += item.getPrice();
             }
             order.setPrice(price);
             Order result = orderService.saveOrder(order);
-            for (Item item : order_items) {
+            for (Item item : orderItems) {
                 orderItemService.saveOrderItem(new OrderItem().setDependencies(item, result));
             }
 
             JSONObject jo = new JSONObject();
             jo.put("price", result.getPrice());
             jo.put("user", result.getUser().getUsername());
-            List<String> items_names = new ArrayList<>();
-            for (Item item : order_items) {
-                items_names.add(item.getName());
+            List<String> itemsNames = new ArrayList<>();
+            for (Item item : orderItems) {
+                itemsNames.add(item.getName());
             }
-            jo.put("order_content", items_names);
+            jo.put("order_content", itemsNames);
 
             return new ResponseEntity<>(jo, HttpStatus.CREATED);
         } catch (Exception e) {
@@ -253,34 +240,35 @@ public class AppController {
     @PutMapping("/items/{id}")
     public ResponseEntity<JSONObject> editItem(@RequestBody Item item, @PathVariable(value = "id") Long itemID) {
         try {
-            Item edit_item = itemService.getItemById(itemID);
+            Item editItem = itemService.getItemById(itemID);
             if (item.getName() != null) {
-                edit_item.setName(item.getName());
+                editItem.setName(item.getName());
             }
             if (item.getDescription() != null) {
-                edit_item.setDescription(item.getDescription());
+                editItem.setDescription(item.getDescription());
             }
             if (item.getPrice() != null) {
-                edit_item.setPrice(item.getPrice());
+                editItem.setPrice(item.getPrice());
             }
-            Photo old_photo = null;
+            Photo oldPhoto = null;
             if (item.getPhoto() != null) {
-                old_photo = edit_item.getPhoto();
-                edit_item.setPhoto(item.getPhoto());
+                Photo newPhoto = item.getPhoto();
+                oldPhoto = item.getPhoto();
+
+                if (oldPhoto != null) { // if user had phone before
+                    oldPhoto.setPath(newPhoto.getPath());
+                    photoService.savePhoto(oldPhoto);
+                } else { // if there was no phone
+                    editItem.setPhoto(photoService.savePhoto(newPhoto));
+                }
             }
-            if (edit_item.getPhoto() != null) { // save new photo
-                photoService.savePhoto(edit_item.getPhoto());
-            }
-            edit_item = itemService.saveItem(edit_item);
-            if (old_photo != null) { // delete old photo
-                photoService.deletePhoto(old_photo);
-            }
+            editItem = itemService.saveItem(editItem);
 
             JSONObject jo = new JSONObject();
-            jo.put("price", edit_item.getPrice());
-            jo.put("description", edit_item.getDescription());
-            jo.put("name", edit_item.getName());
-            jo.put("restaurant_name", edit_item.getRestaurant().getName());
+            jo.put("price", editItem.getPrice());
+            jo.put("description", editItem.getDescription());
+            jo.put("name", editItem.getName());
+            jo.put("restaurant_name", editItem.getRestaurant().getName());
 
             return new ResponseEntity<>(jo, HttpStatus.OK);
         } catch (Exception e) {

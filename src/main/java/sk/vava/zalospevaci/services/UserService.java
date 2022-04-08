@@ -4,6 +4,7 @@ import net.minidev.json.JSONObject;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import sk.vava.zalospevaci.artifacts.HibernateUtil;
 import sk.vava.zalospevaci.artifacts.UserRole;
@@ -12,7 +13,9 @@ import sk.vava.zalospevaci.models.Phone;
 import sk.vava.zalospevaci.models.User;
 import sk.vava.zalospevaci.repositories.UserRepository;
 
+import javax.persistence.NoResultException;
 import javax.persistence.criteria.*;
+import java.nio.charset.Charset;
 import java.util.List;
 
 @Service
@@ -29,12 +32,23 @@ public class UserService {
     }
 
     public User getUserById(Long id) {
-        return userRepository.findById(id).get();
+        return userRepository.findById(id).orElse(null);
     }
 
-    public User getUserByLogin(String username) {
-        Session session = HibernateUtil.getSessionFactory().openSession();
-        return session.createQuery("SELECT u FROM User u WHERE u.username=:username", User.class).setParameter("username", username).getSingleResult();
+    public User getUserByBasicAuth(String username, String basicAuthToken) {
+        var user = getUserByUsername(username);
+        if (!HttpHeaders.encodeBasicAuth(user.getUsername(), user.getPassword(), null).equals(basicAuthToken)) {
+            throw new NoResultException("not authorized or found");
+        }
+        return user;
+    }
+
+    public User getUserByUsername(String username) {
+        var user = userRepository.findUserByUsername(username).orElse(null);
+        if (user == null) {
+            throw new NoResultException(username + " not found");
+        }
+        return user;
     }
 
     public List<User> filterUsers(JSONObject obj) {
@@ -64,10 +78,8 @@ public class UserService {
             rolePred = builder.like(root.get("role"), obj.getAsString("role"));
         }
 
-        Join<User, Address> userAddrJoin = null;
-
         if (obj.containsKey("city")) {
-            userAddrJoin = root.join("address");
+            Join<User, Address> userAddrJoin = root.join("address");
             addrCityPred = builder.like(userAddrJoin.get("city"), obj.getAsString("city"));
         }
 

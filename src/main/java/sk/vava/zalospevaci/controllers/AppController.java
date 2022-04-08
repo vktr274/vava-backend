@@ -3,6 +3,7 @@ package sk.vava.zalospevaci.controllers;
 import net.minidev.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -53,7 +54,7 @@ public class AppController {
     public ResponseEntity<User> getUserByLogin(@PathVariable(value = "username") String username)
             throws ResourceNotFoundException {
         try {
-            User user = userService.getUserByLogin(username);
+            User user = userService.getUserByUsername(username);
             return new ResponseEntity<>(user, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
@@ -133,6 +134,30 @@ public class AppController {
     }
 
     /* ORDERS calls */
+
+    @GetMapping("/orders/{username}")
+    public ResponseEntity<List<JSONObject>> userOrders(
+            @RequestParam String basicAuthToken,
+            @PathVariable(value = "username") String username
+    ) {
+        var user = userService.getUserByBasicAuth(username, basicAuthToken);
+        List<Order> orders = orderService.getOrdersByUser(user);
+        List<JSONObject> resJson = new ArrayList<>();
+        for (Order order : orders) {
+            JSONObject tmp = new JSONObject();
+            tmp.put("price", order.getPrice());
+            tmp.put("ordered_at", order.getOrderedAt());
+            tmp.put("delivered_at", order.getDeliveredAt());
+            List<String> items = new ArrayList<>();
+            for (OrderItem orderItem : order.getOrderItems()) {
+                items.add(orderItem.getItem().getName());
+            }
+            tmp.put("items", items);
+            resJson.add(tmp);
+        }
+
+        return new ResponseEntity<>(resJson, HttpStatus.OK);
+    }
 
     @PostMapping("/orders")
     public ResponseEntity<JSONObject> addOrder(@RequestParam List<Long> mealsId, @RequestParam Long userId) {

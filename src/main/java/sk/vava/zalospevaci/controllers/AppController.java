@@ -104,10 +104,9 @@ public class AppController {
             if (user.getPassword() != null) {
                 editUser.setPassword(user.getPassword());
             }
-            Address oldAddr = null;
             if (user.getAddress() != null) {
                 Address newAddr = user.getAddress();
-                oldAddr = editUser.getAddress();
+                Address oldAddr = editUser.getAddress();
                 if (oldAddr != null) { // if user had phone before
                     oldAddr.setData(newAddr);
                     addressService.saveAddress(oldAddr);
@@ -115,10 +114,9 @@ public class AppController {
                     editUser.setAddress(addressService.saveAddress(user.getAddress()));
                 }
             }
-            Phone oldPhone = null;
             if (user.getPhone() != null) {
                 Phone newPhone = user.getPhone();
-                oldPhone = editUser.getPhone();
+                Phone oldPhone = editUser.getPhone();
                 if (oldPhone != null) { // if user had phone before
                     oldPhone.setData(newPhone);
                     phoneService.savePhone(oldPhone);
@@ -250,10 +248,9 @@ public class AppController {
             if (item.getPrice() != null) {
                 editItem.setPrice(item.getPrice());
             }
-            Photo oldPhoto = null;
             if (item.getPhoto() != null) {
                 Photo newPhoto = item.getPhoto();
-                oldPhoto = item.getPhoto();
+                Photo oldPhoto = item.getPhoto();
 
                 if (oldPhoto != null) { // if user had phone before
                     oldPhoto.setPath(newPhoto.getPath());

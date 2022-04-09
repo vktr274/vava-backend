@@ -229,6 +229,7 @@ public class AppController {
             List<JSONObject> resJson = new ArrayList<>();
             for (Item item : result) {
                 JSONObject tmp = new JSONObject();
+                tmp.put("id", item.getId());
                 tmp.put("price", item.getPrice());
                 tmp.put("description", item.getDescription());
                 tmp.put("name", item.getName());
@@ -249,6 +250,7 @@ public class AppController {
             itemService.saveItem(item);
 
             JSONObject jo = new JSONObject();
+            jo.put("id", item.getId());
             jo.put("price", item.getPrice());
             jo.put("description", item.getDescription());
             jo.put("name", item.getName());

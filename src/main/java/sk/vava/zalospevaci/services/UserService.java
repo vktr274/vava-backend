@@ -8,6 +8,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import sk.vava.zalospevaci.artifacts.HibernateUtil;
 import sk.vava.zalospevaci.artifacts.UserRole;
+import sk.vava.zalospevaci.exceptions.NotAuthorizedException;
+import sk.vava.zalospevaci.exceptions.NotFoundException;
 import sk.vava.zalospevaci.models.Address;
 import sk.vava.zalospevaci.models.Phone;
 import sk.vava.zalospevaci.models.User;
@@ -35,18 +37,18 @@ public class UserService {
         return userRepository.findById(id).orElse(null);
     }
 
-    public User getUserByBasicAuth(String username, String basicAuthToken) {
+    public User getUserByBasicAuth(String username, String basicAuthToken) throws NotFoundException, NotAuthorizedException {
         var user = getUserByUsername(username);
         if (!HttpHeaders.encodeBasicAuth(user.getUsername(), user.getPassword(), null).equals(basicAuthToken)) {
-            throw new NoResultException("not authorized or found");
+            throw new NotAuthorizedException("not authorized");
         }
         return user;
     }
 
-    public User getUserByUsername(String username) {
+    public User getUserByUsername(String username) throws NotFoundException {
         var user = userRepository.findUserByUsername(username).orElse(null);
         if (user == null) {
-            throw new NoResultException(username + " not found");
+            throw new NotFoundException(username + " not found");
         }
         return user;
     }

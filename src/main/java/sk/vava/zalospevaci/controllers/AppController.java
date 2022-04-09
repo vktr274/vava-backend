@@ -3,34 +3,36 @@ package sk.vava.zalospevaci.controllers;
 import net.minidev.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import sk.vava.zalospevaci.exceptions.NotAuthorizedException;
+import sk.vava.zalospevaci.exceptions.NotFoundException;
 import sk.vava.zalospevaci.models.*;
 import sk.vava.zalospevaci.services.*;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 public class AppController {
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private AddressService addressService;
-    @Autowired
-    private PhoneService phoneService;
-    @Autowired
-    private OrderService orderService;
-    @Autowired
-    private ItemService itemService;
-    @Autowired
-    private OrderItemService orderItemService;
-    @Autowired
-    private RestaurantService restaurantService;
-    @Autowired
-    private PhotoService photoService;
+    static final private Path MEDIA_ROOT = Path.of(System.getProperty("user.dir"), "media");
+
+    @Autowired private UserService userService;
+    @Autowired private AddressService addressService;
+    @Autowired private PhoneService phoneService;
+    @Autowired private OrderService orderService;
+    @Autowired private ItemService itemService;
+    @Autowired private OrderItemService orderItemService;
+    @Autowired private RestaurantService restaurantService;
+    @Autowired private PhotoService photoService;
+    @Autowired private ReviewPhotoService reviewPhotoService;
+    @Autowired private ReviewService reviewService;
 
     /* USERS calls */
 
@@ -137,26 +139,36 @@ public class AppController {
 
     @GetMapping("/orders/{username}")
     public ResponseEntity<List<JSONObject>> userOrders(
-            @RequestParam String basicAuthToken,
+            @RequestHeader(value = "auth") String basicAuthToken,
             @PathVariable(value = "username") String username
     ) {
-        var user = userService.getUserByBasicAuth(username, basicAuthToken);
-        List<Order> orders = orderService.getOrdersByUser(user);
-        List<JSONObject> resJson = new ArrayList<>();
-        for (Order order : orders) {
-            JSONObject tmp = new JSONObject();
-            tmp.put("price", order.getPrice());
-            tmp.put("ordered_at", order.getOrderedAt());
-            tmp.put("delivered_at", order.getDeliveredAt());
-            List<String> items = new ArrayList<>();
-            for (OrderItem orderItem : order.getOrderItems()) {
-                items.add(orderItem.getItem().getName());
+        try {
+            var user = userService.getUserByBasicAuth(username, basicAuthToken);
+            List<Order> orders = orderService.getOrdersByUser(user);
+            List<JSONObject> resJson = new ArrayList<>();
+            for (Order order : orders) {
+                JSONObject tmp = new JSONObject();
+                tmp.put("price", order.getPrice());
+                tmp.put("ordered_at", order.getOrderedAt());
+                tmp.put("delivered_at", order.getDeliveredAt());
+                List<String> items = new ArrayList<>();
+                for (OrderItem orderItem : order.getOrderItems()) {
+                    items.add(orderItem.getItem().getName());
+                }
+                tmp.put("items", items);
+                resJson.add(tmp);
             }
-            tmp.put("items", items);
-            resJson.add(tmp);
+            return new ResponseEntity<>(resJson, HttpStatus.OK);
+        } catch (NotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        } catch (NotAuthorizedException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         }
-
-        return new ResponseEntity<>(resJson, HttpStatus.OK);
     }
 
     @PostMapping("/orders")
@@ -348,5 +360,113 @@ public class AppController {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+    }
+
+    /* REVIEWS calls */
+
+    @PostMapping("/restaurants/{id}/reviews")
+    public ResponseEntity<Long> addRestaurantReview(
+            @PathVariable(value = "id") Long restaurantID,
+            @RequestParam String username,
+            @RequestHeader(value = "auth") String basicAuthToken,
+            @RequestBody Review review
+    ) {
+        try {
+            review.setRestaurant(restaurantService.getRestaurantById(restaurantID));
+            var user = userService.getUserByBasicAuth(username, basicAuthToken);
+            review.setUser(user);
+            var addedReview = reviewService.saveReview(review);
+            return new ResponseEntity<>(addedReview.getId(), HttpStatus.CREATED);
+        } catch (NotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        } catch (NotAuthorizedException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @PostMapping("/reviews/{id}/photos")
+    public ResponseEntity<HttpStatus> addReviewPhoto(
+            @PathVariable(value = "id") Long reviewID,
+            @RequestParam String username,
+            @RequestHeader(value = "auth") String basicAuthToken,
+            @RequestBody MultipartFile file
+    ) {
+        try {
+            var user = userService.getUserByBasicAuth(username, basicAuthToken);
+            var review = reviewService.getByIdAndUser(reviewID, user);
+            var filePath = new File(
+                    String.valueOf(MEDIA_ROOT),
+                    UUID.randomUUID().toString() + file.getOriginalFilename()
+            );
+            if (!filePath.exists()) {
+                if (!filePath.mkdirs()) {
+                    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+            }
+            file.transferTo(filePath);
+            var photo = new Photo();
+            photo.setPath(filePath.toString());
+            photoService.savePhoto(photo);
+            var reviewPhoto = new ReviewPhoto();
+            reviewPhoto.setPhoto(photo);
+            reviewPhoto.setReview(review);
+            reviewPhotoService.saveReviewPhoto(reviewPhoto);
+            return new ResponseEntity<>(HttpStatus.CREATED);
+        } catch (NotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        } catch (NotAuthorizedException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @GetMapping("/reviews/{review_id}/photos/{photo_id}")
+    public ResponseEntity<MultipartFile> getReviewPhoto(
+            @PathVariable(value = "review_id") Long reviewID,
+            @PathVariable(value = "photo_id") Long photoID
+    ) {
+        return new ResponseEntity<>(null, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/restaurant/{id}/reviews")
+    public ResponseEntity<List<JSONObject>> getRestaurantReviews(
+            @PathVariable(value = "id") Long restaurantID
+    ) {
+        return new ResponseEntity<>(null, HttpStatus.OK);
+    }
+
+    @GetMapping("/users/{id}/reviews")
+    public ResponseEntity<List<JSONObject>> getUserReviews(
+            @PathVariable(value = "id") Long userID
+    ) {
+        return new ResponseEntity<>(null, HttpStatus.OK);
+    }
+
+    @GetMapping("/restaurant/{restaurant_id}/reviews/{review_id}")
+    public ResponseEntity<List<JSONObject>> getRestaurantReview(
+            @PathVariable(value = "restaurant_id") Long restaurantID,
+            @PathVariable(value = "review_id") Long reviewID
+    ) {
+        return new ResponseEntity<>(null, HttpStatus.OK);
+    }
+
+    @GetMapping("/users/{user_id}/reviews/{review_id}")
+    public ResponseEntity<List<JSONObject>> getUserReview(
+            @PathVariable(value = "user_id") Long userID,
+            @PathVariable(value = "review_id") Long reviewID
+    ) {
+        return new ResponseEntity<>(null, HttpStatus.OK);
     }
 }

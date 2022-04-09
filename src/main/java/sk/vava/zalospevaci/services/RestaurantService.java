@@ -6,6 +6,7 @@ import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import sk.vava.zalospevaci.artifacts.HibernateUtil;
+import sk.vava.zalospevaci.exceptions.NotFoundException;
 import sk.vava.zalospevaci.models.Address;
 import sk.vava.zalospevaci.models.Restaurant;
 import sk.vava.zalospevaci.repositories.RestaurantRepository;
@@ -22,8 +23,12 @@ public class RestaurantService {
         return restaurantRepository.findAll();
     }
 
-    public Restaurant getRestaurantById(Long id) {
-        return restaurantRepository.findById(id).get();
+    public Restaurant getRestaurantById(Long id) throws NotFoundException {
+        var restaurant = restaurantRepository.findById(id).orElse(null);
+        if (restaurant == null) {
+            throw new NotFoundException(id.toString() + " not found");
+        }
+        return restaurant;
     }
 
     public List<Restaurant> filterRestaurants(JSONObject obj) {

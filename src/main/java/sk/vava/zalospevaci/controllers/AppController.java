@@ -4,6 +4,7 @@ import net.minidev.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,6 +14,7 @@ import sk.vava.zalospevaci.models.*;
 import sk.vava.zalospevaci.services.*;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -366,9 +368,9 @@ public class AppController {
 
     /* REVIEWS calls */
 
-    @PostMapping("/restaurants/{id}/reviews")
+    @PostMapping("/reviews")
     public ResponseEntity<Long> addRestaurantReview(
-            @PathVariable(value = "id") Long restaurantID,
+            @RequestParam(value = "restaurant_id") Long restaurantID,
             @RequestParam String username,
             @RequestHeader(value = "auth") String basicAuthToken,
             @RequestBody Review review
@@ -391,9 +393,9 @@ public class AppController {
         }
     }
 
-    @PostMapping("/reviews/{id}/photos")
+    @PostMapping("/photos")
     public ResponseEntity<HttpStatus> addReviewPhoto(
-            @PathVariable(value = "id") Long reviewID,
+            @RequestParam(value = "review_id") Long reviewID,
             @RequestParam String username,
             @RequestHeader(value = "auth") String basicAuthToken,
             @RequestBody MultipartFile file
@@ -434,40 +436,33 @@ public class AppController {
         }
     }
 
-    @GetMapping("/reviews/{review_id}/photos/{photo_id}")
-    public ResponseEntity<MultipartFile> getReviewPhoto(
-            @PathVariable(value = "review_id") Long reviewID,
-            @PathVariable(value = "photo_id") Long photoID
+    @GetMapping(value = "/photos/{id}", produces = MediaType.IMAGE_JPEG_VALUE)
+    public ResponseEntity<byte[]> getPhoto(
+            @PathVariable(value = "id") Long photoID
     ) {
-        return new ResponseEntity<>(null, HttpStatus.CREATED);
+        try {
+            var photoData = new FileInputStream(photoService.getById(photoID).getPath());
+            return new ResponseEntity<>(photoData.readAllBytes(), HttpStatus.OK);
+        } catch (NotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
-    @GetMapping("/restaurant/{id}/reviews")
-    public ResponseEntity<List<JSONObject>> getRestaurantReviews(
-            @PathVariable(value = "id") Long restaurantID
-    ) {
-        return new ResponseEntity<>(null, HttpStatus.OK);
-    }
-
-    @GetMapping("/users/{id}/reviews")
-    public ResponseEntity<List<JSONObject>> getUserReviews(
-            @PathVariable(value = "id") Long userID
-    ) {
-        return new ResponseEntity<>(null, HttpStatus.OK);
-    }
-
-    @GetMapping("/restaurant/{restaurant_id}/reviews/{review_id}")
-    public ResponseEntity<List<JSONObject>> getRestaurantReview(
-            @PathVariable(value = "restaurant_id") Long restaurantID,
-            @PathVariable(value = "review_id") Long reviewID
+    @GetMapping("/reviews")
+    public ResponseEntity<List<JSONObject>> getReviews(
+            @RequestParam(value = "restaurant_id", required = false) Long restaurantID,
+            @RequestParam(value = "user_id", required = false) Long userID
     ) {
         return new ResponseEntity<>(null, HttpStatus.OK);
     }
 
-    @GetMapping("/users/{user_id}/reviews/{review_id}")
-    public ResponseEntity<List<JSONObject>> getUserReview(
-            @PathVariable(value = "user_id") Long userID,
-            @PathVariable(value = "review_id") Long reviewID
+    @GetMapping("/reviews/{id}")
+    public ResponseEntity<List<JSONObject>> getReview(
+            @PathVariable(value = "id") Long reviewID
     ) {
         return new ResponseEntity<>(null, HttpStatus.OK);
     }

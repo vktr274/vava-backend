@@ -33,8 +33,12 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    public User getUserById(Long id) {
-        return userRepository.findById(id).orElse(null);
+    public User getUserById(Long id) throws NotFoundException {
+        var user = userRepository.findById(id).orElse(null);
+        if (user == null) {
+            throw new NotFoundException(id.toString() + " not found");
+        }
+        return user;
     }
 
     public User getUserByBasicAuth(String username, String basicAuthToken) throws NotFoundException, NotAuthorizedException {

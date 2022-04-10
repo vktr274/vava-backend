@@ -2,6 +2,10 @@ package sk.vava.zalospevaci.controllers;
 
 import net.minidev.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -449,21 +453,130 @@ public class AppController {
         } catch (IOException e) {
             e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
     @GetMapping("/reviews")
-    public ResponseEntity<List<JSONObject>> getReviews(
+    public ResponseEntity<JSONObject> getReviews(
             @RequestParam(value = "restaurant_id", required = false) Long restaurantID,
-            @RequestParam(value = "user_id", required = false) Long userID
+            @RequestParam(value = "user_id", required = false) Long userID,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "per_page", required = false) Integer perPage,
+            @RequestParam(value= "sort_by", required = false) String sortBy,
+            @RequestParam(value = "sort", required = false) String sort
     ) {
-        return new ResponseEntity<>(null, HttpStatus.OK);
+        try {
+            String defSortBy = "id";
+            String defSort = "desc";
+            int defPage = 0;
+            int defPerPage = 10;
+
+            if (page != null) {
+                defPage = page;
+            }
+            if (perPage != null) {
+                defPerPage = perPage;
+            }
+            if (sortBy != null) {
+                defSortBy = sortBy;
+            }
+            if (sort != null) {
+                defSort = sort;
+            }
+
+            Page<Review> reviews;
+            Sort sortObj = null;
+            if (defSort.equalsIgnoreCase("asc")) {
+                sortObj = Sort.by(defSortBy).ascending();
+            } else if (defSort.equalsIgnoreCase("desc")) {
+                sortObj = Sort.by(defSortBy).descending();
+            }
+            Pageable pageable = sortObj == null ? PageRequest.of(defPage, defPerPage) : PageRequest.of(defPage, defPerPage, sortObj);
+            if (restaurantID != null && userID != null) {
+                reviews = reviewService.getByRestaurantAndUser(
+                        restaurantService.getRestaurantById(restaurantID),
+                        userService.getUserById(userID),
+                        pageable
+                );
+            } else if (restaurantID != null) {
+                reviews = reviewService.getByRestaurant(
+                        restaurantService.getRestaurantById(restaurantID),
+                        pageable
+                );
+            } else if (userID != null) {
+                reviews = reviewService.getByUser(
+                        userService.getUserById(userID),
+                        pageable
+                );
+            } else {
+                reviews = reviewService.getAllReviews(
+                        pageable
+                );
+            }
+            JSONObject finalJson = new JSONObject();
+            List<JSONObject> reviewsJson = new ArrayList<>();
+            for (var review : reviews) {
+                JSONObject obj = new JSONObject();
+                obj.appendField("username", review.getUser().getUsername());
+                obj.appendField("restaurant", review.getRestaurant().getName());
+                obj.appendField("score", review.getScore());
+                obj.appendField("text", review.getText());
+                obj.appendField("created_at", review.getCreatedAt());
+                var reviewPhotos = reviewPhotoService.getAllByReviewId(review.getId());
+                List<Long> photos = new ArrayList<>();
+                for (var reviewPhoto : reviewPhotos) {
+                    photos.add(reviewPhoto.getPhoto().getId());
+                }
+                obj.appendField("photos", photos);
+                reviewsJson.add(obj);
+            }
+            JSONObject metadata = new JSONObject();
+            metadata.appendField("page", defPage);
+            metadata.appendField("per_page", defPerPage);
+            metadata.appendField("sort", defSort);
+            metadata.appendField("sort_by", defSortBy);
+
+            finalJson.appendField("reviews", reviewsJson);
+            finalJson.appendField("metadata", metadata);
+
+            return new ResponseEntity<>(finalJson, HttpStatus.OK);
+        } catch (NotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+        }
     }
 
     @GetMapping("/reviews/{id}")
-    public ResponseEntity<List<JSONObject>> getReview(
+    public ResponseEntity<JSONObject> getReview(
             @PathVariable(value = "id") Long reviewID
     ) {
-        return new ResponseEntity<>(null, HttpStatus.OK);
+        try {
+            var review = reviewService.getById(reviewID);
+            JSONObject obj = new JSONObject();
+            obj.appendField("username", review.getUser().getUsername());
+            obj.appendField("restaurant", review.getRestaurant().getName());
+            obj.appendField("score", review.getScore());
+            obj.appendField("text", review.getText());
+            obj.appendField("created_at", review.getCreatedAt());
+            var reviewPhotos = reviewPhotoService.getAllByReviewId(review.getId());
+            List<Long> photos = new ArrayList<>();
+            for (var reviewPhoto : reviewPhotos) {
+                photos.add(reviewPhoto.getPhoto().getId());
+            }
+            obj.appendField("photos", photos);
+            return new ResponseEntity<>(obj, HttpStatus.OK);
+        } catch (NotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+        }
+
     }
 }

@@ -2,7 +2,7 @@ package sk.vava.zalospevaci.artifacts;
 
 public enum UserRole {
 
-    GUEST("guest", 0), MANAGER("manager", 1), ADMIN("admin", 2);
+    guest("guest", 0), manager("manager", 1), admin("admin", 2);
 
     private final String key;
     private final Integer value;

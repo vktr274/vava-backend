@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import sk.vava.zalospevaci.artifacts.TokenManager;
 import sk.vava.zalospevaci.exceptions.NotAuthorizedException;
 import sk.vava.zalospevaci.exceptions.NotFoundException;
 import sk.vava.zalospevaci.models.*;
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @RestController
@@ -39,6 +41,30 @@ public class AppController {
     @Autowired private PhotoService photoService;
     @Autowired private ReviewPhotoService reviewPhotoService;
     @Autowired private ReviewService reviewService;
+
+
+
+    @GetMapping("/token")
+    public ResponseEntity<JSONObject> getToken(@RequestBody JSONObject req)
+            throws ResourceNotFoundException {
+        try {
+            String login = req.getAsString("login");
+            String pass = req.getAsString("password");
+
+            User user = userService.getUserByUsername(login);
+
+            if (Objects.equals(user.getPassword(), pass)) {
+                JSONObject jo = new JSONObject();
+                jo.put("role", user.getRole());
+                jo.put("token", TokenManager.createToken(user));
+                return new ResponseEntity<>(jo, HttpStatus.OK);
+            } else {
+                throw new ResourceNotFoundException("Not found");
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
 
     /* USERS calls */
 
@@ -88,22 +114,29 @@ public class AppController {
     }
 
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<HttpStatus> delUser(@PathVariable(value = "id") Long userID)
+    public ResponseEntity<HttpStatus> delUser(@PathVariable(value = "id") Long userId,
+                                              @RequestHeader(value = "auth") String token)
             throws ResourceNotFoundException {
         try {
-            User user = userService.getUserById(userID);
-            userService.delUser(user);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            var user = userService.getUserById(TokenManager.getIdByToken(token));
+            var delUser = userService.getUserById(userId);
+            if (delUser.equals(user) || user.getRole().equals("admin")) {
+                userService.delUser(user);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            } else {
+                throw new NotAuthorizedException("");
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
-    @PutMapping("/users/{id}")
-    public ResponseEntity<User> editUser(@RequestBody User user, @PathVariable(value = "id") Long userID) {
+    @PutMapping("/users")
+    public ResponseEntity<User> editUser(@RequestBody User user,
+                                         @RequestHeader(value = "auth") String token) {
         try {
-            User editUser = userService.getUserById(userID);
+            User editUser = userService.getUserById(TokenManager.getIdByToken(token));
             if (user.getUsername() != null) {
                 editUser.setUsername(user.getUsername());
             }
@@ -143,13 +176,11 @@ public class AppController {
 
     /* ORDERS calls */
 
-    @GetMapping("/orders/{username}")
-    public ResponseEntity<List<JSONObject>> userOrders(
-            @RequestHeader(value = "auth") String basicAuthToken,
-            @PathVariable(value = "username") String username
+    @GetMapping("/orders")
+    public ResponseEntity<List<JSONObject>> userOrders(@RequestHeader(value = "auth") String token
     ) {
         try {
-            var user = userService.getUserByBasicAuth(username, basicAuthToken);
+            var user = userService.getUserById(TokenManager.getIdByToken(token));
             List<Order> orders = orderService.getOrdersByUser(user);
             List<JSONObject> resJson = new ArrayList<>();
             for (Order order : orders) {
@@ -168,9 +199,6 @@ public class AppController {
         } catch (NotFoundException e) {
             e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
-        } catch (NotAuthorizedException e) {
-            e.printStackTrace();
-            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
@@ -178,9 +206,10 @@ public class AppController {
     }
 
     @PostMapping("/orders")
-    public ResponseEntity<JSONObject> addOrder(@RequestParam List<Long> mealsId, @RequestParam Long userId) {
+    public ResponseEntity<JSONObject> addOrder(@RequestParam List<Long> mealsId,
+                                               @RequestHeader(value = "auth") String token) {
         try {
-            User user = userService.getUserById(userId);
+            User user = userService.getUserById(TokenManager.getIdByToken(token));
             List<Item> orderItems = new ArrayList<>();
             for (Long id : mealsId) {
                 orderItems.add(itemService.getItemById(id));
@@ -214,10 +243,15 @@ public class AppController {
     }
 
     @DeleteMapping("/orders/{id}")
-    public ResponseEntity<HttpStatus> deleteOrder(@PathVariable(value = "id") Long orderID) {
+    public ResponseEntity<HttpStatus> deleteOrder(@PathVariable(value = "id") Long orderId,
+                                                  @RequestHeader(value = "auth") String token) {
         try {
-            orderService.deleteOrder(orderID);
+            TokenManager.validToken(token, "admin");
+            orderService.deleteOrder(orderId);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (NotAuthorizedException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -227,11 +261,11 @@ public class AppController {
     /* ITEMS calls */
 
     @GetMapping("/items/{restaurant_id}")
-    public ResponseEntity<List<JSONObject>> getItemsByRestaurant(@PathVariable(value = "restaurant_id") Long restaurantID)
+    public ResponseEntity<List<JSONObject>> getItemsByRestaurant(@PathVariable(value = "restaurant_id") Long restaurantId)
             throws ResourceNotFoundException {
         try {
 
-            List<Item> result = itemService.findByRestaurId(restaurantID);
+            List<Item> result = itemService.findByRestaurId(restaurantId);
             List<JSONObject> resJson = new ArrayList<>();
             for (Item item : result) {
                 JSONObject tmp = new JSONObject();
@@ -250,9 +284,16 @@ public class AppController {
     }
 
     @PostMapping("/items")
-    public ResponseEntity<JSONObject> addProduct(@RequestBody Item item, @RequestParam Long restaurantID){
+    public ResponseEntity<JSONObject> addProduct(@RequestBody Item item, @RequestParam Long restaurantId,
+                                                 @RequestHeader(value = "auth") String token){
         try {
-            item.setRestaurant(restaurantService.getRestaurantById(restaurantID));
+            TokenManager.validToken(token, "manager");
+            var user = userService.getUserById(TokenManager.getIdByToken(token));
+            var restaurant = restaurantService.getRestaurantById(restaurantId);
+            if (restaurant.getManager() != user) {
+                throw new NotAuthorizedException("Not a manager");
+            }
+            item.setRestaurant(restaurant);
             itemService.saveItem(item);
 
             JSONObject jo = new JSONObject();
@@ -263,6 +304,9 @@ public class AppController {
             jo.put("restaurant_name", item.getRestaurant().getName());
 
             return new ResponseEntity<>(jo, HttpStatus.CREATED);
+        } catch (NotAuthorizedException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -270,20 +314,36 @@ public class AppController {
     }
 
     @DeleteMapping("/items/{id}")
-    public ResponseEntity<HttpStatus> deleteProduct(@PathVariable(value = "id") Long itemID) {
+    public ResponseEntity<HttpStatus> deleteProduct(@PathVariable(value = "id") Long itemId,
+                                                    @RequestHeader(value = "auth") String token) {
         try {
-            itemService.deleteItemById(itemID);
+            TokenManager.validToken(token, "manager");
+            var item = itemService.getItemById(itemId);
+            var user = userService.getUserById(TokenManager.getIdByToken(token));
+            if (item.getRestaurant().getManager() != user) {
+                throw new NotAuthorizedException("Not a manager");
+            }
+            itemService.deleteItemById(itemId);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }  catch (Exception e) {
+        } catch (NotAuthorizedException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
     @PutMapping("/items/{id}")
-    public ResponseEntity<JSONObject> editItem(@RequestBody Item item, @PathVariable(value = "id") Long itemID) {
+    public ResponseEntity<JSONObject> editItem(@RequestBody Item item, @PathVariable(value = "id") Long itemId,
+                                               @RequestHeader(value = "auth") String token) {
         try {
-            Item editItem = itemService.getItemById(itemID);
+            Item editItem = itemService.getItemById(itemId);
+            TokenManager.validToken(token, "manager");
+            var user = userService.getUserById(TokenManager.getIdByToken(token));
+            if (editItem.getRestaurant().getManager() != user) {
+                throw new NotAuthorizedException("Not a manager");
+            }
             if (item.getName() != null) {
                 editItem.setName(item.getName());
             }
@@ -346,9 +406,12 @@ public class AppController {
     }
 
     @PostMapping("/restaurants")
-    public ResponseEntity<Restaurant> addRestaurant(@RequestBody Restaurant restaurant, @RequestParam Long managerId) {
+    public ResponseEntity<Restaurant> addRestaurant(@RequestBody Restaurant restaurant,
+                                                    @RequestHeader(value = "auth") String token) {
         try {
-            restaurant.setManager(userService.getUserById(managerId));
+            TokenManager.validToken(token, "manager");
+            var user = userService.getUserById(TokenManager.getIdByToken(token));
+            restaurant.setManager(user);
             phoneService.savePhone(restaurant.getPhone());
             addressService.saveAddress(restaurant.getAddress());
             Restaurant res = restaurantService.saveRestaurant(restaurant);
@@ -360,9 +423,16 @@ public class AppController {
     }
 
     @DeleteMapping("/restaurants/{id}")
-    public ResponseEntity<HttpStatus> deleteRestaurant(@PathVariable(value = "id") Long restaurantID) {
+    public ResponseEntity<HttpStatus> deleteRestaurant(@PathVariable(value = "id") Long restaurantId,
+                                                       @RequestHeader(value = "auth") String token) {
         try {
-            restaurantService.deleteRestaurantById(restaurantID);
+            TokenManager.validToken(token, "manager");
+            var user = userService.getUserById(TokenManager.getIdByToken(token));
+            var restaurant = restaurantService.getRestaurantById(restaurantId);
+            if (restaurant.getManager() != user) {
+                throw new NotAuthorizedException("Not a manager");
+            }
+            restaurantService.deleteRestaurantById(restaurantId);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (Exception e) {
             e.printStackTrace();
@@ -374,23 +444,19 @@ public class AppController {
 
     @PostMapping("/reviews")
     public ResponseEntity<Long> addRestaurantReview(
-            @RequestParam(value = "restaurant_id") Long restaurantID,
-            @RequestParam String username,
-            @RequestHeader(value = "auth") String basicAuthToken,
+            @RequestParam(value = "restaurant_id") Long restaurantId,
+            @RequestHeader(value = "auth") String token,
             @RequestBody Review review
     ) {
         try {
-            review.setRestaurant(restaurantService.getRestaurantById(restaurantID));
-            var user = userService.getUserByBasicAuth(username, basicAuthToken);
+            review.setRestaurant(restaurantService.getRestaurantById(restaurantId));
+            var user = userService.getUserById(TokenManager.getIdByToken(token));
             review.setUser(user);
             var addedReview = reviewService.saveReview(review);
             return new ResponseEntity<>(addedReview.getId(), HttpStatus.CREATED);
         } catch (NotFoundException e) {
             e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
-        } catch (NotAuthorizedException e) {
-            e.printStackTrace();
-            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
@@ -399,14 +465,13 @@ public class AppController {
 
     @PostMapping("/photos")
     public ResponseEntity<HttpStatus> addReviewPhoto(
-            @RequestParam(value = "review_id") Long reviewID,
-            @RequestParam String username,
-            @RequestHeader(value = "auth") String basicAuthToken,
+            @RequestParam(value = "review_id") Long reviewId,
+            @RequestHeader(value = "auth") String token,
             @RequestBody MultipartFile file
     ) {
         try {
-            var user = userService.getUserByBasicAuth(username, basicAuthToken);
-            var review = reviewService.getByIdAndUser(reviewID, user);
+            var user = userService.getUserById(TokenManager.getIdByToken(token));
+            var review = reviewService.getByIdAndUser(reviewId, user);
             var filePath = new File(
                     String.valueOf(MEDIA_ROOT),
                     UUID.randomUUID().toString() + file.getOriginalFilename()
@@ -428,9 +493,6 @@ public class AppController {
         } catch (NotFoundException e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        } catch (NotAuthorizedException e) {
-            e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         } catch (IOException e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -442,10 +504,10 @@ public class AppController {
 
     @GetMapping(value = "/photos/{id}", produces = MediaType.IMAGE_JPEG_VALUE)
     public ResponseEntity<byte[]> getPhoto(
-            @PathVariable(value = "id") Long photoID
+            @PathVariable(value = "id") Long photoId
     ) {
         try {
-            var photoData = new FileInputStream(photoService.getById(photoID).getPath());
+            var photoData = new FileInputStream(photoService.getById(photoId).getPath());
             return new ResponseEntity<>(photoData.readAllBytes(), HttpStatus.OK);
         } catch (NotFoundException e) {
             e.printStackTrace();
@@ -461,8 +523,8 @@ public class AppController {
 
     @GetMapping("/reviews")
     public ResponseEntity<JSONObject> getReviews(
-            @RequestParam(value = "restaurant_id", required = false) Long restaurantID,
-            @RequestParam(value = "user_id", required = false) Long userID,
+            @RequestParam(value = "restaurant_id", required = false) Long restaurantId,
+            @RequestParam(value = "user_id", required = false) Long userId,
             @RequestParam(value = "page", required = false) Integer page,
             @RequestParam(value = "per_page", required = false) Integer perPage,
             @RequestParam(value= "sort_by", required = false) String sortBy,
@@ -495,20 +557,20 @@ public class AppController {
                 sortObj = Sort.by(defSortBy).descending();
             }
             Pageable pageable = sortObj == null ? PageRequest.of(defPage, defPerPage) : PageRequest.of(defPage, defPerPage, sortObj);
-            if (restaurantID != null && userID != null) {
+            if (restaurantId != null && userId != null) {
                 reviews = reviewService.getByRestaurantAndUser(
-                        restaurantService.getRestaurantById(restaurantID),
-                        userService.getUserById(userID),
+                        restaurantService.getRestaurantById(restaurantId),
+                        userService.getUserById(userId),
                         pageable
                 );
-            } else if (restaurantID != null) {
+            } else if (restaurantId != null) {
                 reviews = reviewService.getByRestaurant(
-                        restaurantService.getRestaurantById(restaurantID),
+                        restaurantService.getRestaurantById(restaurantId),
                         pageable
                 );
-            } else if (userID != null) {
+            } else if (userId != null) {
                 reviews = reviewService.getByUser(
-                        userService.getUserById(userID),
+                        userService.getUserById(userId),
                         pageable
                 );
             } else {

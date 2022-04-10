@@ -15,9 +15,7 @@ import sk.vava.zalospevaci.models.Phone;
 import sk.vava.zalospevaci.models.User;
 import sk.vava.zalospevaci.repositories.UserRepository;
 
-import javax.persistence.NoResultException;
 import javax.persistence.criteria.*;
-import java.nio.charset.Charset;
 import java.util.List;
 
 @Service
@@ -41,8 +39,8 @@ public class UserService {
         return user;
     }
 
-    public User getUserByBasicAuth(String username, String basicAuthToken) throws NotFoundException, NotAuthorizedException {
-        var user = getUserByUsername(username);
+    public User getUserByBasicAuth(Long id, String basicAuthToken) throws NotFoundException, NotAuthorizedException {
+        var user = getUserById(id);
         if (!HttpHeaders.encodeBasicAuth(user.getUsername(), user.getPassword(), null).equals(basicAuthToken)) {
             throw new NotAuthorizedException("not authorized");
         }

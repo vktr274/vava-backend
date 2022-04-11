@@ -1,0 +1,5 @@
+ALTER TABLE orders
+DROP COLUMN delivered_at;
+
+ALTER TABLE orders
+ADD COLUMN note VARCHAR;

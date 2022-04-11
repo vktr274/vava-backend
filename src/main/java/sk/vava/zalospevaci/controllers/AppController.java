@@ -186,8 +186,8 @@ public class AppController {
             for (Order order : orders) {
                 JSONObject tmp = new JSONObject();
                 tmp.put("price", order.getPrice());
+                tmp.put("note", order.getNote());
                 tmp.put("ordered_at", order.getOrderedAt());
-                tmp.put("delivered_at", order.getDeliveredAt());
                 List<String> items = new ArrayList<>();
                 for (OrderItem orderItem : order.getOrderItems()) {
                     items.add(orderItem.getItem().getName());

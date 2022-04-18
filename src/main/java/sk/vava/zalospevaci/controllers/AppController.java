@@ -661,6 +661,18 @@ public class AppController {
         } catch (Exception e) {
             return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         }
+    }
 
+    @DeleteMapping("/reviews/{id}")
+    public ResponseEntity<HttpStatus> deleteReview(
+            @PathVariable(value = "id") Long reviewID
+    ) {
+        try {
+            var review = reviewService.getById(reviewID);
+            reviewService.deleteById(review);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (NotFoundException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 }

@@ -18,6 +18,10 @@ public class ReviewService {
     @Autowired
     private ReviewRepository reviewRepository;
 
+    public void deleteById(Review review) {
+        reviewRepository.delete(review);
+    }
+
     public Page<Review> getAllReviews(Pageable pageable) {
         return reviewRepository.findAll(pageable);
     }

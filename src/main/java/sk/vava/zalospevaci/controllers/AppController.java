@@ -42,7 +42,15 @@ public class AppController {
     @Autowired private ReviewPhotoService reviewPhotoService;
     @Autowired private ReviewService reviewService;
 
-
+    private JSONObject createUserJson(User user) {
+        var userJson = new JSONObject();
+        userJson.appendField("email", user.getEmail());
+        userJson.appendField("username", user.getUsername());
+        userJson.appendField("blocked", user.isBlocked());
+        userJson.appendField("id", user.getId());
+        userJson.appendField("role", user.getRole());
+        return userJson;
+    }
 
     @GetMapping("/token")
     public ResponseEntity<JSONObject> getToken(@RequestBody JSONObject req)
@@ -69,15 +77,26 @@ public class AppController {
     /* USERS calls */
 
     @GetMapping("/users")
-    public ResponseEntity<List<User>> filterUsers(@RequestBody (required = false) JSONObject filters) {
+    public ResponseEntity<JSONObject> filterUsers(
+            @RequestBody (required = false) JSONObject filters,
+            @RequestHeader(value = "auth") String authToken
+    ) {
         try {
-            return new ResponseEntity<>(
-                    filters == null ? userService.findAllUsers() : userService.filterUsers(filters),
-                    HttpStatus.OK
-            );
+            TokenManager.validToken(authToken, "admin");
+            List<JSONObject> usersJsonList = new ArrayList<>();
+            var users = filters == null ? userService.findAllUsers() : userService.filterUsers(filters);
+            for (var user : users) {
+                usersJsonList.add(createUserJson(user));
+            }
+            JSONObject result = new JSONObject();
+            result.appendField("users", usersJsonList);
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        } catch (NotAuthorizedException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -85,19 +104,22 @@ public class AppController {
     * GET method to get info about user with {username} specified
     * */
     @GetMapping("/users/{username}")
-    public ResponseEntity<User> getUserByLogin(@PathVariable(value = "username") String username)
+    public ResponseEntity<JSONObject> getUserByLogin(@PathVariable(value = "username") String username)
             throws ResourceNotFoundException {
         try {
             User user = userService.getUserByUsername(username);
-            return new ResponseEntity<>(user, HttpStatus.OK);
+            return new ResponseEntity<>(createUserJson(user), HttpStatus.OK);
+        } catch (NotFoundException e) {
+            e.printStackTrace();
+            return  new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         }
     }
 
     @PostMapping("/users")
-    public ResponseEntity<User> registerUser(@RequestBody (required = false) User user) {
+    public ResponseEntity<JSONObject> registerUser(@RequestBody (required = false) User user) {
         try {
             if (user.getAddress() != null) {
                 addressService.saveAddress(user.getAddress());
@@ -106,7 +128,7 @@ public class AppController {
                 phoneService.savePhone(user.getPhone());
             }
             user = userService.saveUser(user);
-            return new ResponseEntity<>(user, HttpStatus.CREATED);
+            return new ResponseEntity<>(createUserJson(user), HttpStatus.CREATED);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -133,7 +155,7 @@ public class AppController {
     }
 
     @PutMapping("/users")
-    public ResponseEntity<User> editUser(@RequestBody User user,
+    public ResponseEntity<JSONObject> editUser(@RequestBody User user,
                                          @RequestHeader(value = "auth") String token) {
         try {
             User editUser = userService.getUserById(TokenManager.getIdByToken(token));
@@ -167,7 +189,7 @@ public class AppController {
                 }
             }
             editUser = userService.updateUser(editUser);
-            return new ResponseEntity<>(editUser, HttpStatus.OK);
+            return new ResponseEntity<>(createUserJson(editUser), HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

@@ -34,11 +34,9 @@ public class TokenManager {
         return key.toString();
     }
 
-    static public boolean validToken(String token, String requiredRole) throws NotAuthorizedException {
+    static public void validToken(String token, String requiredRole) throws NotAuthorizedException {
         String role = tokens.get(token).role;
-        if (UserRole.valueOf(role).getValue() >= UserRole.valueOf(requiredRole).getValue()) {
-            return true;
-        } else {
+        if (UserRole.valueOf(role).getValue() < UserRole.valueOf(requiredRole).getValue()) {
             throw new NotAuthorizedException("Wrong role");
         }
     }

@@ -52,7 +52,7 @@ public class AppController {
         return userJson;
     }
 
-    @GetMapping("/token")
+    @PostMapping("/token")
     public ResponseEntity<JSONObject> getToken(@RequestBody JSONObject req)
             throws ResourceNotFoundException {
         try {

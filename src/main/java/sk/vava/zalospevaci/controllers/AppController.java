@@ -49,6 +49,7 @@ public class AppController {
         userJson.appendField("blocked", user.isBlocked());
         userJson.appendField("id", user.getId());
         userJson.appendField("role", user.getRole());
+        userJson.appendField("address", user.getAddress());
         return userJson;
     }
 

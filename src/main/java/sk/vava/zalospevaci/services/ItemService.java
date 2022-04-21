@@ -1,9 +1,8 @@
 package sk.vava.zalospevaci.services;
 
-import org.hibernate.Session;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import sk.vava.zalospevaci.artifacts.HibernateUtil;
+import sk.vava.zalospevaci.exceptions.NotFoundException;
 import sk.vava.zalospevaci.models.Item;
 import sk.vava.zalospevaci.repositories.ItemRepository;
 
@@ -18,13 +17,20 @@ public class ItemService {
         return itemRepository.findAll();
     }
 
-    public List<Item> findByRestaurId(Long restaurId) {
-        Session session = HibernateUtil.getSessionFactory().openSession();
-        return session.createQuery("SELECT i FROM Item i WHERE i.restaurant.id =  :restaurId", Item.class).setParameter("restaurId", restaurId).getResultList();
+    public List<Item> getByRestaurantId(Long restaurantId) throws NotFoundException {
+        var items = itemRepository.findAllByRestaurantId(restaurantId).orElse(null);
+        if (items == null) {
+            throw new NotFoundException("no items for " + restaurantId.toString());
+        }
+        return items;
     }
 
-    public Item getItemById(Long id) {
-        return itemRepository.findById(id).get();
+    public Item getItemById(Long id) throws NotFoundException {
+        var item = itemRepository.findById(id).orElse(null);
+        if (item == null) {
+            throw new NotFoundException(id.toString() + " not found");
+        }
+        return item;
     }
 
     public Item saveItem(Item item) {

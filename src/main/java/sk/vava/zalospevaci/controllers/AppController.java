@@ -6,7 +6,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -54,23 +53,25 @@ public class AppController {
     }
 
     @PostMapping("/token")
-    public ResponseEntity<JSONObject> getToken(@RequestBody JSONObject req)
-            throws ResourceNotFoundException {
+    public ResponseEntity<JSONObject> getToken(
+            @RequestBody JSONObject req
+    ) {
         try {
             String login = req.getAsString("login");
             String pass = req.getAsString("password");
 
             User user = userService.getUserByUsername(login);
 
-            if (Objects.equals(user.getPassword(), pass)) {
-                JSONObject jo = new JSONObject();
-                jo.put("role", user.getRole());
-                jo.put("token", TokenManager.createToken(user));
-                return new ResponseEntity<>(jo, HttpStatus.OK);
-            } else {
-                throw new ResourceNotFoundException("Not found");
+            if (!Objects.equals(user.getPassword(), pass)) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
-        } catch (Exception e) {
+
+            JSONObject jo = new JSONObject();
+            jo.put("role", user.getRole());
+            jo.put("token", TokenManager.createToken(user));
+
+            return new ResponseEntity<>(jo, HttpStatus.OK);
+        } catch (NotFoundException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -105,8 +106,9 @@ public class AppController {
     * GET method to get info about user with {username} specified
     * */
     @GetMapping("/users/{username}")
-    public ResponseEntity<JSONObject> getUserByLogin(@PathVariable(value = "username") String username)
-            throws ResourceNotFoundException {
+    public ResponseEntity<JSONObject> getUserByLogin(
+            @PathVariable(value = "username") String username
+    ) {
         try {
             User user = userService.getUserByUsername(username);
             return new ResponseEntity<>(createUserJson(user), HttpStatus.OK);
@@ -120,7 +122,9 @@ public class AppController {
     }
 
     @PostMapping("/users")
-    public ResponseEntity<JSONObject> registerUser(@RequestBody (required = false) User user) {
+    public ResponseEntity<JSONObject> registerUser(
+            @RequestBody (required = false) User user
+    ) {
         try {
             if (user.getAddress() != null) {
                 addressService.saveAddress(user.getAddress());
@@ -137,9 +141,10 @@ public class AppController {
     }
 
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<HttpStatus> delUser(@PathVariable(value = "id") Long userId,
-                                              @RequestHeader(value = "auth") String token)
-            throws ResourceNotFoundException {
+    public ResponseEntity<HttpStatus> delUser(
+            @PathVariable(value = "id") Long userId,
+            @RequestHeader(value = "auth") String token
+    ) {
         try {
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             var delUser = userService.getUserById(userId);
@@ -147,17 +152,19 @@ public class AppController {
                 userService.delUser(user);
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             } else {
-                throw new NotAuthorizedException("");
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
             }
-        } catch (Exception e) {
+        } catch (NotFoundException e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
     @PutMapping("/users")
-    public ResponseEntity<JSONObject> editUser(@RequestBody User user,
-                                         @RequestHeader(value = "auth") String token) {
+    public ResponseEntity<JSONObject> editUser(
+            @RequestBody User user,
+            @RequestHeader(value = "auth") String token
+    ) {
         try {
             User editUser = userService.getUserById(TokenManager.getIdByToken(token));
             if (user.getUsername() != null) {
@@ -200,7 +207,8 @@ public class AppController {
     /* ORDERS calls */
 
     @GetMapping("/orders")
-    public ResponseEntity<List<JSONObject>> userOrders(@RequestHeader(value = "auth") String token
+    public ResponseEntity<List<JSONObject>> userOrders(
+            @RequestHeader(value = "auth") String token
     ) {
         try {
             var user = userService.getUserById(TokenManager.getIdByToken(token));
@@ -229,8 +237,10 @@ public class AppController {
     }
 
     @PostMapping("/orders")
-    public ResponseEntity<JSONObject> addOrder(@RequestParam List<Long> mealsId,
-                                               @RequestHeader(value = "auth") String token) {
+    public ResponseEntity<JSONObject> addOrder(
+            @RequestParam List<Long> mealsId,
+            @RequestHeader(value = "auth") String token
+    ) {
         try {
             User user = userService.getUserById(TokenManager.getIdByToken(token));
             List<Item> orderItems = new ArrayList<>();
@@ -259,6 +269,9 @@ public class AppController {
             jo.put("order_content", itemsNames);
 
             return new ResponseEntity<>(jo, HttpStatus.CREATED);
+        } catch (NotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -266,8 +279,10 @@ public class AppController {
     }
 
     @DeleteMapping("/orders/{id}")
-    public ResponseEntity<HttpStatus> deleteOrder(@PathVariable(value = "id") Long orderId,
-                                                  @RequestHeader(value = "auth") String token) {
+    public ResponseEntity<HttpStatus> deleteOrder(
+            @PathVariable(value = "id") Long orderId,
+            @RequestHeader(value = "auth") String token
+    ) {
         try {
             TokenManager.validToken(token, "admin");
             orderService.deleteOrder(orderId);
@@ -284,11 +299,12 @@ public class AppController {
     /* ITEMS calls */
 
     @GetMapping("/items/{restaurant_id}")
-    public ResponseEntity<List<JSONObject>> getItemsByRestaurant(@PathVariable(value = "restaurant_id") Long restaurantId)
-            throws ResourceNotFoundException {
+    public ResponseEntity<List<JSONObject>> getItemsByRestaurant(
+            @PathVariable(value = "restaurant_id") Long restaurantId
+    ) {
         try {
 
-            List<Item> result = itemService.findByRestaurId(restaurantId);
+            List<Item> result = itemService.getByRestaurantId(restaurantId);
             List<JSONObject> resJson = new ArrayList<>();
             for (Item item : result) {
                 JSONObject tmp = new JSONObject();
@@ -307,14 +323,16 @@ public class AppController {
     }
 
     @PostMapping("/items")
-    public ResponseEntity<JSONObject> addProduct(@RequestBody Item item, @RequestParam Long restaurantId,
-                                                 @RequestHeader(value = "auth") String token){
+    public ResponseEntity<JSONObject> addProduct(
+            @RequestBody Item item, @RequestParam Long restaurantId,
+            @RequestHeader(value = "auth") String token
+    ) {
         try {
             TokenManager.validToken(token, "manager");
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             var restaurant = restaurantService.getRestaurantById(restaurantId);
             if (restaurant.getManager() != user) {
-                throw new NotAuthorizedException("Not a manager");
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
             }
             item.setRestaurant(restaurant);
             itemService.saveItem(item);
@@ -337,35 +355,40 @@ public class AppController {
     }
 
     @DeleteMapping("/items/{id}")
-    public ResponseEntity<HttpStatus> deleteProduct(@PathVariable(value = "id") Long itemId,
-                                                    @RequestHeader(value = "auth") String token) {
+    public ResponseEntity<HttpStatus> deleteProduct(
+            @PathVariable(value = "id") Long itemId,
+            @RequestHeader(value = "auth") String token
+    ) {
         try {
             TokenManager.validToken(token, "manager");
             var item = itemService.getItemById(itemId);
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             if (item.getRestaurant().getManager() != user) {
-                throw new NotAuthorizedException("Not a manager");
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
             }
             itemService.deleteItemById(itemId);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (NotAuthorizedException e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        } catch (Exception e) {
+        } catch (NotFoundException e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
     @PutMapping("/items/{id}")
-    public ResponseEntity<JSONObject> editItem(@RequestBody Item item, @PathVariable(value = "id") Long itemId,
-                                               @RequestHeader(value = "auth") String token) {
+    public ResponseEntity<JSONObject> editItem(
+            @RequestBody Item item,
+            @PathVariable(value = "id") Long itemId,
+            @RequestHeader(value = "auth") String token
+    ) {
         try {
             Item editItem = itemService.getItemById(itemId);
             TokenManager.validToken(token, "manager");
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             if (editItem.getRestaurant().getManager() != user) {
-                throw new NotAuthorizedException("Not a manager");
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
             }
             if (item.getName() != null) {
                 editItem.setName(item.getName());
@@ -396,6 +419,9 @@ public class AppController {
             jo.put("restaurant_name", editItem.getRestaurant().getName());
 
             return new ResponseEntity<>(jo, HttpStatus.OK);
+        } catch (NotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -405,7 +431,9 @@ public class AppController {
     /* RESTAURANTS calls */
 
     @GetMapping("/restaurants")
-    public ResponseEntity<List<JSONObject>> filterRestaurants(@RequestBody (required = false) JSONObject filters) {
+    public ResponseEntity<List<JSONObject>> filterRestaurants(
+            @RequestBody (required = false) JSONObject filters
+    ) {
         try {
             List<Restaurant> result = filters == null
                     ? restaurantService.findAllRestaurants()
@@ -429,8 +457,10 @@ public class AppController {
     }
 
     @PostMapping("/restaurants")
-    public ResponseEntity<Restaurant> addRestaurant(@RequestBody Restaurant restaurant,
-                                                    @RequestHeader(value = "auth") String token) {
+    public ResponseEntity<Restaurant> addRestaurant(
+            @RequestBody Restaurant restaurant,
+            @RequestHeader(value = "auth") String token
+    ) {
         try {
             TokenManager.validToken(token, "manager");
             var user = userService.getUserById(TokenManager.getIdByToken(token));
@@ -446,14 +476,16 @@ public class AppController {
     }
 
     @DeleteMapping("/restaurants/{id}")
-    public ResponseEntity<HttpStatus> deleteRestaurant(@PathVariable(value = "id") Long restaurantId,
-                                                       @RequestHeader(value = "auth") String token) {
+    public ResponseEntity<HttpStatus> deleteRestaurant(
+            @PathVariable(value = "id") Long restaurantId,
+            @RequestHeader(value = "auth") String token
+    ) {
         try {
             TokenManager.validToken(token, "manager");
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             var restaurant = restaurantService.getRestaurantById(restaurantId);
             if (restaurant.getManager() != user) {
-                throw new NotAuthorizedException("Not a manager");
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
             }
             restaurantService.deleteRestaurantById(restaurantId);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);

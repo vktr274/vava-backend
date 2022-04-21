@@ -4,15 +4,15 @@ import net.minidev.json.JSONObject;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import sk.vava.zalospevaci.artifacts.HibernateUtil;
 import sk.vava.zalospevaci.artifacts.UserRole;
 import sk.vava.zalospevaci.exceptions.NotAuthorizedException;
 import sk.vava.zalospevaci.exceptions.NotFoundException;
-import sk.vava.zalospevaci.models.Address;
-import sk.vava.zalospevaci.models.Phone;
-import sk.vava.zalospevaci.models.User;
+import sk.vava.zalospevaci.models.*;
 import sk.vava.zalospevaci.repositories.UserRepository;
 
 import javax.persistence.criteria.*;
@@ -27,8 +27,8 @@ public class UserService {
     @Autowired
     private PhoneService phoneService;
 
-    public List<User> findAllUsers() {
-        return userRepository.findAll();
+    public Page<User> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable);
     }
 
     public User getUserById(Long id) throws NotFoundException {
@@ -92,6 +92,42 @@ public class UserService {
         Query<User> query = session.createQuery(criteria);
 
         return query.getResultList();
+    }
+
+    public Page<User> getByName(String namePart, Pageable pageable)
+            throws NotFoundException
+    {
+        var users = userRepository.findByUsernameContaining(namePart, pageable).orElse(null);
+        if (users == null) {
+            throw new NotFoundException(
+                    "users with '" + namePart + "' in their username not found"
+            );
+        }
+        return users;
+    }
+
+    public Page<User> getByRole(String role, Pageable pageable)
+            throws NotFoundException
+    {
+        var users = userRepository.findAllByRole(role, pageable).orElse(null);
+        if (users == null) {
+            throw new NotFoundException(
+                    "users for role '" + role + "' not found"
+            );
+        }
+        return users;
+    }
+
+    public Page<User> getByStatus(Boolean blocked, Pageable pageable)
+            throws NotFoundException
+    {
+        var users = userRepository.findAllByBlocked(blocked, pageable).orElse(null);
+        if (users == null) {
+            throw new NotFoundException(
+                    "users with status blocked = '" + blocked + "' not found"
+            );
+        }
+        return users;
     }
 
     public User updateUser(User user) { return userRepository.save(user); }

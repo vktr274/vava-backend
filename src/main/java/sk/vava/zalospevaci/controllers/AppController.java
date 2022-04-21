@@ -108,22 +108,75 @@ public class AppController {
 
     @GetMapping("/users")
     public ResponseEntity<JSONObject> filterUsers(
-            @RequestBody (required = false) JSONObject filters,
+            @RequestParam(value = "blocked", required = false) Boolean blocked,
+            @RequestParam(value = "role", required = false) String role,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "per_page", required = false) Integer perPage,
+            @RequestParam(value= "sort_by", required = false) String sortBy,
+            @RequestParam(value = "sort", required = false) String sort,
             @RequestHeader(value = "auth") String authToken
     ) {
         try {
             TokenManager.validToken(authToken, "admin");
-            List<JSONObject> usersJsonList = new ArrayList<>();
-            var users = filters == null ? userService.findAllUsers() : userService.filterUsers(filters);
-            for (var user : users) {
-                usersJsonList.add(createUserJson(user));
+
+            String defSortBy = "id";
+            String defSort = "desc";
+            int defPage = 0;
+            int defPerPage = 10;
+
+            if (page != null) {
+                defPage = page;
             }
-            JSONObject result = new JSONObject();
-            result.appendField("users", usersJsonList);
-            return new ResponseEntity<>(result, HttpStatus.OK);
+            if (perPage != null) {
+                defPerPage = perPage;
+            }
+            if (sortBy != null) {
+                defSortBy = sortBy;
+            }
+            if (sort != null) {
+                defSort = sort;
+            }
+
+            Page<User> users;
+            Sort sortObj = null;
+
+            if (defSort.equalsIgnoreCase("asc")) {
+                sortObj = Sort.by(defSortBy).ascending();
+            } else if (defSort.equalsIgnoreCase("desc")) {
+                sortObj = Sort.by(defSortBy).descending();
+            }
+            Pageable pageable = sortObj == null ? PageRequest.of(defPage, defPerPage) : PageRequest.of(defPage, defPerPage, sortObj);
+            if (blocked != null) {
+                users = userService.getByStatus(blocked, pageable);
+            } else if (role != null) {
+                users = userService.getByRole(role, pageable);
+            } else if (name != null) {
+                users = userService.getByName(name, pageable);
+            } else {
+                users = userService.getAllUsers(pageable);
+            }
+
+            JSONObject finalJson = new JSONObject();
+            List<JSONObject> reviewsJson = new ArrayList<>();
+            for (var user : users) {
+                reviewsJson.add(createUserJson(user));
+            }
+            JSONObject metadata = new JSONObject();
+            metadata.appendField("page", defPage);
+            metadata.appendField("per_page", defPerPage);
+            metadata.appendField("sort", defSort);
+            metadata.appendField("sort_by", defSortBy);
+            metadata.appendField("total_pages", users.getTotalPages());
+            metadata.appendField("total_elements", users.getTotalElements());
+
+            finalJson.appendField("reviews", reviewsJson);
+            finalJson.appendField("metadata", metadata);
+
+            return new ResponseEntity<>(finalJson, HttpStatus.OK);
         } catch (NotAuthorizedException e) {
             e.printStackTrace();
-            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);

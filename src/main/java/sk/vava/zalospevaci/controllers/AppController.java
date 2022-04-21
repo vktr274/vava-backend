@@ -52,6 +52,33 @@ public class AppController {
         return userJson;
     }
 
+    private JSONObject createReviewJson(Review review) throws NotFoundException {
+        JSONObject obj = new JSONObject();
+        obj.appendField("id", review.getId());
+        obj.appendField("username", review.getUser().getUsername());
+        obj.appendField("restaurant_id", review.getRestaurant().getId());
+        obj.appendField("score", review.getScore());
+        obj.appendField("text", review.getText());
+        obj.appendField("created_at", review.getCreatedAt());
+        var reviewPhotos = reviewPhotoService.getAllByReviewId(review.getId());
+        List<Long> photos = new ArrayList<>();
+        for (var reviewPhoto : reviewPhotos) {
+            photos.add(reviewPhoto.getPhoto().getId());
+        }
+        obj.appendField("photos", photos);
+        return obj;
+    }
+
+    private JSONObject createItemJson(Item item) {
+        JSONObject jo = new JSONObject();
+        jo.put("id", item.getId());
+        jo.put("price", item.getPrice());
+        jo.put("description", item.getDescription());
+        jo.put("name", item.getName());
+        jo.put("restaurant_name", item.getRestaurant().getName());
+        return jo;
+    }
+
     @PostMapping("/token")
     public ResponseEntity<JSONObject> getToken(
             @RequestBody JSONObject req
@@ -307,13 +334,7 @@ public class AppController {
             List<Item> result = itemService.getByRestaurantId(restaurantId);
             List<JSONObject> resJson = new ArrayList<>();
             for (Item item : result) {
-                JSONObject tmp = new JSONObject();
-                tmp.put("id", item.getId());
-                tmp.put("price", item.getPrice());
-                tmp.put("description", item.getDescription());
-                tmp.put("name", item.getName());
-                tmp.put("restaurant_name", item.getRestaurant().getName());
-                resJson.add(tmp);
+                resJson.add(createItemJson(item));
             }
             return new ResponseEntity<>(resJson, HttpStatus.OK);
         } catch (Exception e) {
@@ -337,14 +358,7 @@ public class AppController {
             item.setRestaurant(restaurant);
             itemService.saveItem(item);
 
-            JSONObject jo = new JSONObject();
-            jo.put("id", item.getId());
-            jo.put("price", item.getPrice());
-            jo.put("description", item.getDescription());
-            jo.put("name", item.getName());
-            jo.put("restaurant_name", item.getRestaurant().getName());
-
-            return new ResponseEntity<>(jo, HttpStatus.CREATED);
+            return new ResponseEntity<>(createItemJson(item), HttpStatus.CREATED);
         } catch (NotAuthorizedException e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -636,19 +650,7 @@ public class AppController {
             JSONObject finalJson = new JSONObject();
             List<JSONObject> reviewsJson = new ArrayList<>();
             for (var review : reviews) {
-                JSONObject obj = new JSONObject();
-                obj.appendField("username", review.getUser().getUsername());
-                obj.appendField("restaurant", review.getRestaurant().getName());
-                obj.appendField("score", review.getScore());
-                obj.appendField("text", review.getText());
-                obj.appendField("created_at", review.getCreatedAt());
-                var reviewPhotos = reviewPhotoService.getAllByReviewId(review.getId());
-                List<Long> photos = new ArrayList<>();
-                for (var reviewPhoto : reviewPhotos) {
-                    photos.add(reviewPhoto.getPhoto().getId());
-                }
-                obj.appendField("photos", photos);
-                reviewsJson.add(obj);
+                reviewsJson.add(createReviewJson(review));
             }
             JSONObject metadata = new JSONObject();
             metadata.appendField("page", defPage);
@@ -675,19 +677,7 @@ public class AppController {
     ) {
         try {
             var review = reviewService.getById(reviewID);
-            JSONObject obj = new JSONObject();
-            obj.appendField("username", review.getUser().getUsername());
-            obj.appendField("restaurant", review.getRestaurant().getName());
-            obj.appendField("score", review.getScore());
-            obj.appendField("text", review.getText());
-            obj.appendField("created_at", review.getCreatedAt());
-            var reviewPhotos = reviewPhotoService.getAllByReviewId(review.getId());
-            List<Long> photos = new ArrayList<>();
-            for (var reviewPhoto : reviewPhotos) {
-                photos.add(reviewPhoto.getPhoto().getId());
-            }
-            obj.appendField("photos", photos);
-            return new ResponseEntity<>(obj, HttpStatus.OK);
+            return new ResponseEntity<>(createReviewJson(review), HttpStatus.OK);
         } catch (NotFoundException e) {
             e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);

@@ -657,6 +657,8 @@ public class AppController {
             metadata.appendField("per_page", defPerPage);
             metadata.appendField("sort", defSort);
             metadata.appendField("sort_by", defSortBy);
+            metadata.appendField("total_pages", reviews.getTotalPages());
+            metadata.appendField("total_elements", reviews.getTotalElements());
 
             finalJson.appendField("reviews", reviewsJson);
             finalJson.appendField("metadata", metadata);

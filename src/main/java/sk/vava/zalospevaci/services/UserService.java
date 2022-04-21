@@ -1,22 +1,17 @@
 package sk.vava.zalospevaci.services;
 
-import net.minidev.json.JSONObject;
-import org.hibernate.Session;
-import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
-import sk.vava.zalospevaci.artifacts.HibernateUtil;
 import sk.vava.zalospevaci.artifacts.UserRole;
 import sk.vava.zalospevaci.exceptions.NotAuthorizedException;
 import sk.vava.zalospevaci.exceptions.NotFoundException;
-import sk.vava.zalospevaci.models.*;
+import sk.vava.zalospevaci.models.Address;
+import sk.vava.zalospevaci.models.Phone;
+import sk.vava.zalospevaci.models.User;
 import sk.vava.zalospevaci.repositories.UserRepository;
-
-import javax.persistence.criteria.*;
-import java.util.List;
 
 @Service
 public class UserService {
@@ -55,43 +50,57 @@ public class UserService {
         return user;
     }
 
-    public List<User> filterUsers(JSONObject obj) {
-        Session session = HibernateUtil.getSessionFactory().openSession();
-
-        // Create CriteriaBuilder
-        CriteriaBuilder builder = session.getCriteriaBuilder();
-
-        // Create CriteriaQuery
-        CriteriaQuery<User> criteria = builder.createQuery(User.class);
-        Root<User> root = criteria.from(User.class);
-
-        Predicate usernamePred = builder.and();
-        Predicate idPred = builder.and();
-        Predicate rolePred = builder.and();
-        Predicate addrCityPred = builder.and();
-
-        if (obj.containsKey("id")) {
-            idPred = builder.equal(root.get("id"), obj.getAsNumber("id"));
+    public Page<User> getByAll(String namePart, String role, Boolean blocked, Pageable pageable)
+            throws NotFoundException
+    {
+        var users = userRepository.findAllByRoleAndUsernameContainingAndBlocked(role, namePart, blocked,
+                pageable).orElse(null);
+        if (users == null) {
+            throw new NotFoundException(
+                    "users with '" + namePart + "' in their username and role " + role + " and status blocked = " +
+                            blocked + " not found"
+            );
         }
+        return users;
+    }
 
-        if (obj.containsKey("username")) {
-            usernamePred = builder.like(root.get("username"), obj.getAsString("username")+"%");
+    public Page<User> getByNameAndRole(String namePart, String role, Pageable pageable)
+            throws NotFoundException
+    {
+        var users = userRepository.findAllByRoleAndUsernameContaining(role, namePart,
+                pageable).orElse(null);
+        if (users == null) {
+            throw new NotFoundException(
+                    "users with '" + namePart + "' in their username and role '" + role + "' not found"
+            );
         }
+        return users;
+    }
 
-        if (obj.containsKey("role")) {
-            rolePred = builder.like(root.get("role"), obj.getAsString("role"));
+    public Page<User> getByRoleAndBlocked( String role, Boolean blocked, Pageable pageable)
+            throws NotFoundException
+    {
+        var users = userRepository.findAllByRoleAndBlocked(role, blocked,
+                pageable).orElse(null);
+        if (users == null) {
+            throw new NotFoundException(
+                    "users with role '" + role + "' and status blocked = " + blocked + " not found"
+            );
         }
+        return users;
+    }
 
-        if (obj.containsKey("city")) {
-            Join<User, Address> userAddrJoin = root.join("address");
-            addrCityPred = builder.like(userAddrJoin.get("city"), obj.getAsString("city"));
+    public Page<User> getByNameAndBlocked( String namePart, Boolean blocked, Pageable pageable)
+            throws NotFoundException
+    {
+        var users = userRepository.findAllByUsernameContainingAndBlocked(namePart, blocked,
+                pageable).orElse(null);
+        if (users == null) {
+            throw new NotFoundException(
+                    "users with '" + namePart + "' in their username and status blocked = " + blocked + " not found"
+            );
         }
-
-        criteria.where(builder.and(idPred, usernamePred, rolePred, addrCityPred));
-
-        Query<User> query = session.createQuery(criteria);
-
-        return query.getResultList();
+        return users;
     }
 
     public Page<User> getByName(String namePart, Pageable pageable)

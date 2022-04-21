@@ -1,26 +1,20 @@
 package sk.vava.zalospevaci.services;
 
-import net.minidev.json.JSONObject;
-import org.hibernate.Session;
-import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import sk.vava.zalospevaci.artifacts.HibernateUtil;
 import sk.vava.zalospevaci.exceptions.NotFoundException;
-import sk.vava.zalospevaci.models.Address;
 import sk.vava.zalospevaci.models.Restaurant;
 import sk.vava.zalospevaci.repositories.RestaurantRepository;
-
-import javax.persistence.criteria.*;
-import java.util.List;
 
 @Service
 public class RestaurantService {
     @Autowired
     private RestaurantRepository restaurantRepository;
 
-    public List<Restaurant> findAllRestaurants() {
-        return restaurantRepository.findAll();
+    public Page<Restaurant> getAllRestaurants(Pageable pageable) {
+        return restaurantRepository.findAll(pageable);
     }
 
     public Restaurant getRestaurantById(Long id) throws NotFoundException {
@@ -31,52 +25,93 @@ public class RestaurantService {
         return restaurant;
     }
 
-    public List<Restaurant> filterRestaurants(JSONObject obj) {
-        Session session = HibernateUtil.getSessionFactory().openSession();
-
-        // Create CriteriaBuilder
-        CriteriaBuilder builder = session.getCriteriaBuilder();
-
-        // Create CriteriaQuery
-        CriteriaQuery<Restaurant> criteria = builder.createQuery(Restaurant.class);
-        Root<Restaurant> root = criteria.from(Restaurant.class);
-
-        Predicate namePred = builder.and();
-        Predicate idPred = builder.and();
-        Predicate addrCityPred = builder.and();
-        Predicate scorePred = builder.and(); // currently unused
-
-        if (obj.containsKey("id")) {
-            idPred = builder.equal(root.get("id"), obj.getAsNumber("id"));
+    public Page<Restaurant> getByAll(String namePart, String city, Boolean blocked, Pageable pageable)
+            throws NotFoundException
+    {
+        var restaurants = restaurantRepository.findByAddressAndBlockedAndName(city, blocked, namePart,
+                pageable).orElse(null);
+        if (restaurants == null) {
+            throw new NotFoundException(
+                    "restaurants with '" + namePart + "' in their name and " + city + " in their city name and " +
+                            "status blocked = " + blocked + " not found"
+            );
         }
+        return restaurants;
+    }
 
-        if (obj.containsKey("name")) {
-            namePred = builder.like(root.get("name"), obj.getAsString("name")+"%");
+    public Page<Restaurant> getByNameAndCity(String namePart, String city, Pageable pageable)
+            throws NotFoundException
+    {
+        var restaurants = restaurantRepository.findByAddressAndName(city, namePart,
+                pageable).orElse(null);
+        if (restaurants == null) {
+            throw new NotFoundException(
+                    "restaurants with '" + namePart + "' in their name and '" + city + "' in their city name not found"
+            );
         }
+        return restaurants;
+    }
 
-        /* Template for a score filter */
-       /* if (obj.containsKey("score")) {
-            // Retrieve number array from JSON object.
-            JSONArray array = (JSONArray)obj.get("score");
-
-            int minScore = (int)array.get(0);
-            int maxScore = (int)array.get(1);
-
-            scorePred = builder.between(root.get("score"), minScore, maxScore);
-        }*/
-
-        Join<Restaurant, Address> userAddrJoin = null;
-
-        if (obj.containsKey("city")) {
-            userAddrJoin = root.join("address");
-            addrCityPred = builder.like(userAddrJoin.get("city"), obj.getAsString("city"));
+    public Page<Restaurant> getByCityAndBlocked( String city, Boolean blocked, Pageable pageable)
+            throws NotFoundException
+    {
+        var restaurants = restaurantRepository.findByAddressAndBlocked(city, blocked,
+                pageable).orElse(null);
+        if (restaurants == null) {
+            throw new NotFoundException(
+                    "restaurants with '" + city + "' in their city name and status blocked = " + blocked + " not found"
+            );
         }
+        return restaurants;
+    }
 
-        criteria.where(builder.and(idPred, namePred, scorePred, addrCityPred));
+    public Page<Restaurant> getByNameAndBlocked(String namePart, Boolean blocked, Pageable pageable)
+            throws NotFoundException
+    {
+        var restaurants = restaurantRepository.findAllByNameContainingAndBlocked(namePart, blocked,
+                pageable).orElse(null);
+        if (restaurants == null) {
+            throw new NotFoundException(
+                    "restaurants with '" + namePart + "' in their name and status blocked = " + blocked + " not found"
+            );
+        }
+        return restaurants;
+    }
 
-        Query<Restaurant> query = session.createQuery(criteria);
+    public Page<Restaurant> getByName(String namePart, Pageable pageable)
+            throws NotFoundException
+    {
+        var restaurants = restaurantRepository.findByNameContaining(namePart, pageable).orElse(null);
+        if (restaurants == null) {
+            throw new NotFoundException(
+                    "restaurants with '" + namePart + "' in their name not found"
+            );
+        }
+        return restaurants;
+    }
 
-        return query.getResultList();
+    public Page<Restaurant> getByStatus(Boolean blocked, Pageable pageable)
+            throws NotFoundException
+    {
+        var restaurants = restaurantRepository.findAllByBlocked(blocked, pageable).orElse(null);
+        if (restaurants == null) {
+            throw new NotFoundException(
+                    "restaurants with status blocked = '" + blocked + "' not found"
+            );
+        }
+        return restaurants;
+    }
+
+    public Page<Restaurant> getByCity(String city, Pageable pageable)
+            throws NotFoundException
+    {
+        var restaurants = restaurantRepository.findByAddress(city, pageable).orElse(null);
+        if (restaurants == null) {
+            throw new NotFoundException(
+                    "addresses with '" + city + "' in their city name not found"
+            );
+        }
+        return restaurants;
     }
 
     public Restaurant saveRestaurant(Restaurant restaurant) {

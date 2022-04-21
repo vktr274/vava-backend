@@ -70,6 +70,17 @@ public class AppController {
         return obj;
     }
 
+    private JSONObject createRestaurantJson(Restaurant restaurant) {
+        JSONObject tmp = new JSONObject();
+        tmp.appendField("name", restaurant.getName());
+        tmp.appendField("id", restaurant.getId());
+        tmp.appendField("address", restaurant.getAddress());
+        tmp.appendField("phone", restaurant.getPhone());
+        tmp.appendField("url", restaurant.getUrl());
+        tmp.appendField("blocked", restaurant.isBlocked());
+        return tmp;
+    }
+
     private JSONObject createItemJson(Item item) {
         JSONObject jo = new JSONObject();
         jo.put("id", item.getId());
@@ -147,7 +158,15 @@ public class AppController {
                 sortObj = Sort.by(defSortBy).descending();
             }
             Pageable pageable = sortObj == null ? PageRequest.of(defPage, defPerPage) : PageRequest.of(defPage, defPerPage, sortObj);
-            if (blocked != null) {
+            if (blocked != null && role != null && name != null) {
+                users = userService.getByAll(name, role, blocked, pageable);
+            } else if (role != null && name != null) {
+                users = userService.getByNameAndRole(name, role, pageable);
+            } else if (role != null && blocked != null) {
+                users = userService.getByRoleAndBlocked(role, blocked, pageable);
+            } else if (name != null && blocked != null) {
+                users = userService.getByNameAndBlocked(name, blocked, pageable);
+            } else if (blocked != null) {
                 users = userService.getByStatus(blocked, pageable);
             } else if (role != null) {
                 users = userService.getByRole(role, pageable);
@@ -158,9 +177,9 @@ public class AppController {
             }
 
             JSONObject finalJson = new JSONObject();
-            List<JSONObject> reviewsJson = new ArrayList<>();
+            List<JSONObject> usersJson = new ArrayList<>();
             for (var user : users) {
-                reviewsJson.add(createUserJson(user));
+                usersJson.add(createUserJson(user));
             }
             JSONObject metadata = new JSONObject();
             metadata.appendField("page", defPage);
@@ -170,7 +189,7 @@ public class AppController {
             metadata.appendField("total_pages", users.getTotalPages());
             metadata.appendField("total_elements", users.getTotalElements());
 
-            finalJson.appendField("reviews", reviewsJson);
+            finalJson.appendField("reviews", usersJson);
             finalJson.appendField("metadata", metadata);
 
             return new ResponseEntity<>(finalJson, HttpStatus.OK);
@@ -499,25 +518,78 @@ public class AppController {
     /* RESTAURANTS calls */
 
     @GetMapping("/restaurants")
-    public ResponseEntity<List<JSONObject>> filterRestaurants(
-            @RequestBody (required = false) JSONObject filters
+    public ResponseEntity<JSONObject> filterRestaurants(
+            @RequestParam(value = "blocked", required = false) Boolean blocked,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "city", required = false) String city,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "per_page", required = false) Integer perPage,
+            @RequestParam(value= "sort_by", required = false) String sortBy,
+            @RequestParam(value = "sort", required = false) String sort
     ) {
         try {
-            List<Restaurant> result = filters == null
-                    ? restaurantService.findAllRestaurants()
-                    : restaurantService.filterRestaurants(filters);
-            List<JSONObject> resJson = new ArrayList<>();
-            for (Restaurant rest : result) {
-                JSONObject tmp = new JSONObject();
-                tmp.appendField("name", rest.getName());
-                tmp.appendField("id", rest.getId());
-                tmp.appendField("address", rest.getAddress());
-                tmp.appendField("phone", rest.getPhone());
-                tmp.appendField("url", rest.getUrl());
-                tmp.appendField("blocked", rest.isBlocked());
-                resJson.add(tmp);
+            String defSortBy = "id";
+            String defSort = "desc";
+            int defPage = 0;
+            int defPerPage = 10;
+
+            if (page != null) {
+                defPage = page;
             }
-            return new ResponseEntity<>(resJson, HttpStatus.OK);
+            if (perPage != null) {
+                defPerPage = perPage;
+            }
+            if (sortBy != null) {
+                defSortBy = sortBy;
+            }
+            if (sort != null) {
+                defSort = sort;
+            }
+
+            Page<Restaurant> restaurants;
+            Sort sortObj = null;
+
+            if (defSort.equalsIgnoreCase("asc")) {
+                sortObj = Sort.by(defSortBy).ascending();
+            } else if (defSort.equalsIgnoreCase("desc")) {
+                sortObj = Sort.by(defSortBy).descending();
+            }
+            Pageable pageable = sortObj == null ? PageRequest.of(defPage, defPerPage) : PageRequest.of(defPage, defPerPage, sortObj);
+            if (name != null && city != null && blocked != null) {
+                restaurants = restaurantService.getByAll(name, city, blocked, pageable);
+            } else if (name != null && blocked != null) {
+                restaurants = restaurantService.getByNameAndBlocked(name, blocked, pageable);
+            } else if (name != null && city != null) {
+                restaurants = restaurantService.getByNameAndCity(name, city, pageable);
+            } else if (city != null && blocked != null) {
+                restaurants = restaurantService.getByCityAndBlocked(city, blocked, pageable);
+            } else if (blocked != null) {
+                restaurants = restaurantService.getByStatus(blocked, pageable);
+            } else if (name != null) {
+                restaurants = restaurantService.getByName(name, pageable);
+            } else if (city != null) {
+                restaurants = restaurantService.getByCity(city, pageable);
+            } else {
+                restaurants = restaurantService.getAllRestaurants(pageable);
+            }
+
+            JSONObject finalJson = new JSONObject();
+            List<JSONObject> restaurantsJson = new ArrayList<>();
+            for (var rest : restaurants) {
+                restaurantsJson.add(createRestaurantJson(rest));
+            }
+            JSONObject metadata = new JSONObject();
+            metadata.appendField("page", defPage);
+            metadata.appendField("per_page", defPerPage);
+            metadata.appendField("sort", defSort);
+            metadata.appendField("sort_by", defSortBy);
+            metadata.appendField("total_pages", restaurants.getTotalPages());
+            metadata.appendField("total_elements", restaurants.getTotalElements());
+
+            finalJson.appendField("reviews", restaurantsJson);
+            finalJson.appendField("metadata", metadata);
+
+            return new ResponseEntity<>(finalJson, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

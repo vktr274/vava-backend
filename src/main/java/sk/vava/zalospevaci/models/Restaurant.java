@@ -1,6 +1,7 @@
 package sk.vava.zalospevaci.models;
 
 import lombok.Data;
+import org.hibernate.annotations.Formula;
 
 import javax.persistence.*;
 import java.util.ArrayList;
@@ -44,4 +45,7 @@ public class Restaurant {
     @OneToOne(cascade = CascadeType.REMOVE, orphanRemoval = true)
     @JoinColumn(name="address_id", nullable=false, referencedColumnName="id")
     private Address address;
+
+    @Formula("(select sum(r.score)/count(r.score) from reviews r where r.restaurant_id = id)")
+    private Double rating;
 }

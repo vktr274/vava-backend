@@ -78,6 +78,7 @@ public class AppController {
         tmp.appendField("phone", restaurant.getPhone());
         tmp.appendField("url", restaurant.getUrl());
         tmp.appendField("blocked", restaurant.isBlocked());
+        tmp.appendField("rating", restaurant.getRating());
         return tmp;
     }
 
@@ -403,7 +404,6 @@ public class AppController {
             @PathVariable(value = "restaurant_id") Long restaurantId
     ) {
         try {
-
             List<Item> result = itemService.getByRestaurantId(restaurantId);
             List<JSONObject> resJson = new ArrayList<>();
             for (Item item : result) {

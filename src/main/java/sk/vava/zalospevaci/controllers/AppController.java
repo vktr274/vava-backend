@@ -123,7 +123,7 @@ public class AppController {
 
     @PostMapping("/users")
     public ResponseEntity<JSONObject> registerUser(
-            @RequestBody (required = false) User user
+            @RequestBody User user
     ) {
         try {
             if (user.getAddress() != null) {
@@ -136,7 +136,7 @@ public class AppController {
             return new ResponseEntity<>(createUserJson(user), HttpStatus.CREATED);
         } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
     }
 

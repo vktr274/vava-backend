@@ -49,6 +49,7 @@ public class AppController {
         userJson.appendField("id", user.getId());
         userJson.appendField("role", user.getRole());
         userJson.appendField("address", user.getAddress());
+        userJson.appendField("phone", user.getPhone());
         return userJson;
     }
 

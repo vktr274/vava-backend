@@ -23,6 +23,7 @@
         <mapping class="sk.vava.zalospevaci.models.Review" />
         <mapping class="sk.vava.zalospevaci.models.Item" />
         <mapping class="sk.vava.zalospevaci.models.Photo" />
+        <mapping class="sk.vava.zalospevaci.models.ReviewPhoto" />
 
     </session-factory>
 </hibernate-configuration>

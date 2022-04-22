@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import sk.vava.zalospevaci.exceptions.NotFoundException;
 import sk.vava.zalospevaci.models.Restaurant;
+import sk.vava.zalospevaci.models.User;
 import sk.vava.zalospevaci.repositories.RestaurantRepository;
 
 @Service
@@ -109,6 +110,18 @@ public class RestaurantService {
         if (restaurants == null) {
             throw new NotFoundException(
                     "addresses with '" + city + "' in their city name not found"
+            );
+        }
+        return restaurants;
+    }
+
+    public Page<Restaurant> getByManager(User manager, Pageable pageable)
+            throws NotFoundException
+    {
+        var restaurants = restaurantRepository.findByManager(manager, pageable).orElse(null);
+        if (restaurants == null) {
+            throw new NotFoundException(
+                    "restaurants not found"
             );
         }
         return restaurants;

@@ -616,6 +616,59 @@ public class AppController {
         }
     }
 
+    @GetMapping("/restaurants/manage")
+    public ResponseEntity<JSONObject> filterRestaurantsManager(
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "per_page", required = false) Integer perPage,
+            @RequestHeader(value = "auth") String token
+    ) {
+        try {
+            TokenManager.validToken(token, "manager");
+            String defSortBy = "id";
+            String defSort = "desc";
+            int defPage = 0;
+            int defPerPage = 10;
+
+            if (page != null) {
+                defPage = page;
+            }
+            if (perPage != null) {
+                defPerPage = perPage;
+            }
+
+            Page<Restaurant> restaurants;
+            Sort sortObj = null;
+            sortObj = Sort.by(defSortBy).ascending();
+
+            Pageable pageable = PageRequest.of(defPage, defPerPage, sortObj);
+
+            var manager = userService.getUserById(TokenManager.getIdByToken(token));
+
+            restaurants = restaurantService.getByManager(manager, pageable);
+
+            JSONObject finalJson = new JSONObject();
+            List<JSONObject> restaurantsJson = new ArrayList<>();
+            for (var rest : restaurants) {
+                restaurantsJson.add(createRestaurantJson(rest));
+            }
+            JSONObject metadata = new JSONObject();
+            metadata.appendField("page", defPage);
+            metadata.appendField("per_page", defPerPage);
+            metadata.appendField("sort", defSort);
+            metadata.appendField("sort_by", defSortBy);
+            metadata.appendField("total_pages", restaurants.getTotalPages());
+            metadata.appendField("total_elements", restaurants.getTotalElements());
+
+            finalJson.appendField("restaurants", restaurantsJson);
+            finalJson.appendField("metadata", metadata);
+
+            return new ResponseEntity<>(finalJson, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+
     @PostMapping("/restaurants")
     public ResponseEntity<Restaurant> addRestaurant(
             @RequestBody Restaurant restaurant,

@@ -8,6 +8,8 @@ import javax.persistence.*;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Table(name="reviews")
@@ -25,6 +27,9 @@ public class Review {
 
     @Column(name="text")
     private String text;
+
+    @OneToMany(mappedBy="review", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<ReviewPhoto> reviewPhotos = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name="restaurant_id", nullable=false, referencedColumnName="id")

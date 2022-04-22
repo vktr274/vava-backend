@@ -1,10 +1,8 @@
 package sk.vava.zalospevaci.models;
 
 import lombok.Data;
-import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
-import java.sql.Timestamp;
 
 @Data
 @Table(name="reviews_photos")
@@ -15,7 +13,7 @@ public class ReviewPhoto {
     @Column(name="id", nullable=false)
     private Long id;
 
-    @ManyToOne
+    @OneToOne(cascade = CascadeType.REMOVE, orphanRemoval = true)
     @JoinColumn(name="photo_id", nullable=false, referencedColumnName="id")
     private Photo photo;
 

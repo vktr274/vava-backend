@@ -190,7 +190,7 @@ public class AppController {
             metadata.appendField("total_pages", users.getTotalPages());
             metadata.appendField("total_elements", users.getTotalElements());
 
-            finalJson.appendField("reviews", usersJson);
+            finalJson.appendField("users", usersJson);
             finalJson.appendField("metadata", metadata);
 
             return new ResponseEntity<>(finalJson, HttpStatus.OK);
@@ -200,6 +200,26 @@ public class AppController {
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @PutMapping("/users/{user_id}/state")
+    public ResponseEntity<Restaurant> setUserState(
+            @PathVariable (value="user_id") Long userId,
+            @RequestHeader(value = "auth") String token
+    ) {
+        try {
+            TokenManager.validToken(token, "admin");
+            var user = userService.getUserById(userId);
+            user.setBlocked(!user.isBlocked());
+            userService.updateUser(user);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (NotAuthorizedException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
@@ -586,7 +606,7 @@ public class AppController {
             metadata.appendField("total_pages", restaurants.getTotalPages());
             metadata.appendField("total_elements", restaurants.getTotalElements());
 
-            finalJson.appendField("reviews", restaurantsJson);
+            finalJson.appendField("restaurants", restaurantsJson);
             finalJson.appendField("metadata", metadata);
 
             return new ResponseEntity<>(finalJson, HttpStatus.OK);
@@ -615,6 +635,26 @@ public class AppController {
         }
     }
 
+    @PutMapping("/restaurants/{restaurant_id}/state")
+    public ResponseEntity<Restaurant> setRestaurantState(
+            @PathVariable (value="restaurant_id") Long restaurantId,
+            @RequestHeader(value = "auth") String token
+    ) {
+        try {
+            TokenManager.validToken(token, "admin");
+            var restaurant = restaurantService.getRestaurantById(restaurantId);
+            restaurant.setBlocked(!restaurant.isBlocked());
+            restaurantService.saveRestaurant(restaurant);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (NotAuthorizedException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
     @DeleteMapping("/restaurants/{id}")
     public ResponseEntity<HttpStatus> deleteRestaurant(
             @PathVariable(value = "id") Long restaurantId,
@@ -624,7 +664,7 @@ public class AppController {
             TokenManager.validToken(token, "manager");
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             var restaurant = restaurantService.getRestaurantById(restaurantId);
-            if (restaurant.getManager() != user) {
+            if (restaurant.getManager() != user && !user.getRole().equals("admin")) {
                 return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
             }
             restaurantService.deleteRestaurantById(restaurantId);

@@ -13,7 +13,7 @@ public class OrderItem {
     @Column(name="id", nullable=false)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.REMOVE)
     @JoinColumn(name="order_id", nullable=false, referencedColumnName="id")
     private Order order;
 

@@ -5,6 +5,8 @@ import lombok.Data;
 import javax.persistence.*;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Size;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Table(name="items")
@@ -23,10 +25,13 @@ public class Item {
     @Size(max = 10, message = "Too many symbols (255 max)")
     private String description;
 
+    @OneToMany(mappedBy="item", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<OrderItem> orderItems = new ArrayList<>();
+
     @Column(name="name", nullable=false)
     private String name;
 
-    @ManyToOne
+    @OneToOne(cascade = CascadeType.REMOVE, orphanRemoval = true)
     @JoinColumn(name="photo_id", referencedColumnName="id")
     private Photo photo = null;
 

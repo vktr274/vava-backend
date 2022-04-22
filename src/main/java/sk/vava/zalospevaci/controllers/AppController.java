@@ -150,6 +150,13 @@ public class AppController {
                 defSort = sort;
             }
 
+            if (name.isEmpty()) {
+                name = null;
+            }
+            if (role.isEmpty()) {
+                role = null;
+            }
+
             Page<User> users;
             Sort sortObj = null;
 

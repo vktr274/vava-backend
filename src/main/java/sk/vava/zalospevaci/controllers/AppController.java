@@ -366,13 +366,13 @@ public class AppController {
 
     @PostMapping("/orders")
     public ResponseEntity<JSONObject> addOrder(
-            @RequestParam List<Long> mealsId,
+            @RequestParam(value = "items_id") List<Long> itemsID,
             @RequestHeader(value = "auth") String token
     ) {
         try {
             User user = userService.getUserById(TokenManager.getIdByToken(token));
             List<Item> orderItems = new ArrayList<>();
-            for (Long id : mealsId) {
+            for (Long id : itemsID) {
                 orderItems.add(itemService.getItemById(id));
             }
             Order order = new Order();
@@ -644,8 +644,7 @@ public class AppController {
             }
 
             Page<Restaurant> restaurants;
-            Sort sortObj = null;
-            sortObj = Sort.by(defSortBy).ascending();
+            var sortObj = Sort.by(defSortBy).ascending();
 
             Pageable pageable = PageRequest.of(defPage, defPerPage, sortObj);
 

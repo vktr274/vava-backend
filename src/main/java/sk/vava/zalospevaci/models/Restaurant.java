@@ -46,6 +46,6 @@ public class Restaurant {
     @JoinColumn(name="address_id", nullable=false, referencedColumnName="id")
     private Address address;
 
-    @Formula("(select cast(sum(r.score) as float)/cast(count(r.score) as float) from reviews r where r.restaurant_id = id)")
+    @Formula("(select sum(r.score)/count(r.score) from reviews r where r.restaurant_id = id)")
     private Double rating;
 }

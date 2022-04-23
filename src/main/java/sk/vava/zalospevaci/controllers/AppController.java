@@ -365,6 +365,7 @@ public class AppController {
     @PostMapping("/orders")
     public ResponseEntity<JSONObject> addOrder(
             @RequestParam(value = "items_id") List<Long> itemsID,
+            @RequestBody (required = false) JSONObject body,
             @RequestHeader(value = "auth") String token
     ) {
         try {
@@ -375,6 +376,9 @@ public class AppController {
             }
             Order order = new Order();
             order.setUser(user);
+            if (body.containsKey("note")) {
+                order.setNote(body.getAsString("note"));
+            }
             Integer price = 0;
             for (Item item : orderItems) {
                 price += item.getPrice();

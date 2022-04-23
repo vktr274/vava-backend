@@ -46,6 +46,6 @@ public class Restaurant {
     @JoinColumn(name="address_id", nullable=false, referencedColumnName="id")
     private Address address;
 
-    @Formula("(select sum(r.score)/count(r.score) from reviews r where r.restaurant_id = id)")
+    @Formula("(select (sum(r.score) * 1.0)/(count(r.score) * 1.0) from reviews r where r.restaurant_id = id)")
     private Double rating;
 }

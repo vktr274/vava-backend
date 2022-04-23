@@ -764,9 +764,6 @@ public class AppController {
             @RequestBody MultipartFile file
     ) {
         try {
-            if (file.getSize() >= 1_000_000) {
-                return new ResponseEntity<>(HttpStatus.PAYLOAD_TOO_LARGE);
-            }
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             var review = reviewService.getByIdAndUser(reviewId, user);
             var filePath = new File(

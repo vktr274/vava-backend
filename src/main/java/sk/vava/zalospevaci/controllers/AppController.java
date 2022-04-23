@@ -158,14 +158,12 @@ public class AppController {
             }
 
             Page<User> users;
-            Sort sortObj = null;
-
+            Sort sortObj = Sort.by(defSortBy).descending();
             if (defSort.equalsIgnoreCase("asc")) {
                 sortObj = Sort.by(defSortBy).ascending();
-            } else if (defSort.equalsIgnoreCase("desc")) {
-                sortObj = Sort.by(defSortBy).descending();
             }
-            Pageable pageable = sortObj == null ? PageRequest.of(defPage, defPerPage) : PageRequest.of(defPage, defPerPage, sortObj);
+            Pageable pageable = PageRequest.of(defPage, defPerPage, sortObj);
+
             if (blocked != null && role != null && name != null) {
                 users = userService.getByAll(name, role, blocked, pageable);
             } else if (role != null && name != null) {
@@ -574,14 +572,12 @@ public class AppController {
             }
 
             Page<Restaurant> restaurants;
-            Sort sortObj = null;
-
+            Sort sortObj = Sort.by(defSortBy).descending();
             if (defSort.equalsIgnoreCase("asc")) {
                 sortObj = Sort.by(defSortBy).ascending();
-            } else if (defSort.equalsIgnoreCase("desc")) {
-                sortObj = Sort.by(defSortBy).descending();
             }
-            Pageable pageable = sortObj == null ? PageRequest.of(defPage, defPerPage) : PageRequest.of(defPage, defPerPage, sortObj);
+            Pageable pageable = PageRequest.of(defPage, defPerPage, sortObj);
+
             if (name != null && city != null && blocked != null) {
                 restaurants = restaurantService.getByAll(name, city, blocked, pageable);
             } else if (name != null && blocked != null) {
@@ -844,13 +840,12 @@ public class AppController {
             }
 
             Page<Review> reviews;
-            Sort sortObj = null;
+            Sort sortObj = Sort.by(defSortBy).descending();
             if (defSort.equalsIgnoreCase("asc")) {
                 sortObj = Sort.by(defSortBy).ascending();
-            } else if (defSort.equalsIgnoreCase("desc")) {
-                sortObj = Sort.by(defSortBy).descending();
             }
-            Pageable pageable = sortObj == null ? PageRequest.of(defPage, defPerPage) : PageRequest.of(defPage, defPerPage, sortObj);
+            Pageable pageable = PageRequest.of(defPage, defPerPage, sortObj);
+
             if (restaurantId != null && userId != null) {
                 reviews = reviewService.getByRestaurantAndUser(
                         restaurantService.getRestaurantById(restaurantId),

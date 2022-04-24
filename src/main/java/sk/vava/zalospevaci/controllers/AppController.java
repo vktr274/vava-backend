@@ -116,7 +116,6 @@ public class AppController {
             @RequestBody JSONObject req
     ) {
         try {
-            LOGGER.info("Logging in ...");
             String login = req.getAsString("login");
             String pass = req.getAsString("password");
 

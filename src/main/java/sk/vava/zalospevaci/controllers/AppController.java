@@ -153,7 +153,6 @@ public class AppController {
             @RequestHeader(value = "auth") String authToken
     ) {
         try {
-            LOGGER.info("Filtering users ...");
             TokenManager.validToken(authToken, "admin");
 
             String defSortBy = "id";
@@ -267,7 +266,6 @@ public class AppController {
             @PathVariable(value = "username") String username
     ) {
         try {
-            LOGGER.info("Getting user by login ...");
             User user = userService.getUserByUsername(username);
             LOGGER.info("User got by login." + " ID: " + user.getId() + " Username: " + user.getUsername());
             return new ResponseEntity<>(createUserJson(user), HttpStatus.OK);
@@ -384,7 +382,6 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
-            LOGGER.info("Finding user orders ...");
             var user = userService.getUserById(TokenManager.getIdByToken(token));
 
             String defSortBy = "id";
@@ -420,7 +417,7 @@ public class AppController {
 
             finalJson.appendField("orders", ordersJson);
             finalJson.appendField("metadata", metadata);
-            LOGGER.info("Got the user orders.(Manager ID: " + user.getId() + " Username: " + user.getUsername() + ")");
+            LOGGER.info("Got the orders.(User ID: " + user.getId() + " Username: " + user.getUsername() + ")");
             return new ResponseEntity<>(finalJson, HttpStatus.OK);
 
             /*List<Order> orders = orderService.getOrdersByUser(user);
@@ -529,7 +526,6 @@ public class AppController {
             @PathVariable(value = "restaurant_id") Long restaurantId
     ) {
         try {
-            LOGGER.info("Getting items by restaurant ...");
             List<Item> result = itemService.getByRestaurantId(restaurantId);
             List<JSONObject> resJson = new ArrayList<>();
             for (Item item : result) {
@@ -669,7 +665,6 @@ public class AppController {
             @RequestParam(value = "sort", required = false) String sort
     ) {
         try {
-            LOGGER.info("Filtering restaurants ...");
             String defSortBy = "id";
             String defSort = "desc";
             int defPage = 0;
@@ -745,7 +740,6 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
-            LOGGER.info("Filtering restaurants managers ...");
             TokenManager.validToken(token, "manager");
             String defSortBy = "id";
             String defSort = "desc";
@@ -941,15 +935,19 @@ public class AppController {
     ) {
         try {
             var photoData = new FileInputStream(photoService.getById(photoId).getPath());
+            LOGGER.info("Got the photo.(Review ID: " + photoId + ")");
             return new ResponseEntity<>(photoData.readAllBytes(), HttpStatus.OK);
         } catch (NotFoundException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Photo not found) --> " + e);
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
         } catch (IOException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Internal server error) --> " + e);
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
@@ -1026,12 +1024,15 @@ public class AppController {
             finalJson.appendField("reviews", reviewsJson);
             finalJson.appendField("metadata", metadata);
 
+            LOGGER.info("Got the reviews.(Restaurant ID: " + restaurantId + ", User ID: " + userId + ")");
             return new ResponseEntity<>(finalJson, HttpStatus.OK);
         } catch (NotFoundException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Reviews not found) --> " + e);
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         }
     }
@@ -1042,11 +1043,14 @@ public class AppController {
     ) {
         try {
             var review = reviewService.getById(reviewID);
+            LOGGER.info("Got the review.(Review ID: " + review.getId() + ")");
             return new ResponseEntity<>(createReviewJson(review), HttpStatus.OK);
         } catch (NotFoundException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Review not found) --> " + e);
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
         } catch (Exception e) {
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         }
     }

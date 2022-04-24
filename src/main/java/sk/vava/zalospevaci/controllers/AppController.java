@@ -97,6 +97,7 @@ public class AppController {
 
     private JSONObject createOrderJson(Order order) {
         JSONObject jo = new JSONObject();
+        jo.put("id", order.getId());
         jo.put("price", order.getPrice());
         jo.put("note", order.getNote());
         jo.put("ordered_at", order.getOrderedAt());
@@ -426,6 +427,7 @@ public class AppController {
             List<JSONObject> resJson = new ArrayList<>();
             for (Order order : orders) {
                 JSONObject tmp = new JSONObject();
+                tmp.put("id", order.getId());
                 tmp.put("price", order.getPrice());
                 tmp.put("note", order.getNote());
                 tmp.put("ordered_at", order.getOrderedAt());

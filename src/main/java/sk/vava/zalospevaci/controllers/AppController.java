@@ -94,6 +94,7 @@ public class AppController {
 
     private JSONObject createOrderJson(Order order) {
         JSONObject jo = new JSONObject();
+        jo.put("id", order.getId());
         jo.put("price", order.getPrice());
         jo.put("note", order.getNote());
         jo.put("ordered_at", order.getOrderedAt());

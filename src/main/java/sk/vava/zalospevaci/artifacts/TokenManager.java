@@ -9,9 +9,9 @@ import java.util.Random;
 
 public class TokenManager {
     private static class UserData {
-        public String role;
-        public String login;
-        public long id;
+        private String role;
+        private String login;
+        private long id;
 
         public UserData(String role, String login, long id) {
             this.id = id;

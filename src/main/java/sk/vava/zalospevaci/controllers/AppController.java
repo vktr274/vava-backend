@@ -1,6 +1,8 @@
 package sk.vava.zalospevaci.controllers;
 
 import net.minidev.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,6 +31,7 @@ import java.util.UUID;
 @RestController
 public class AppController {
     static final private Path MEDIA_ROOT = Path.of(System.getProperty("user.dir"), "media");
+    private static final Logger LOGGER = LoggerFactory.getLogger(AppController.class);
 
     @Autowired private UserService userService;
     @Autowired private AddressService addressService;
@@ -112,12 +115,14 @@ public class AppController {
             @RequestBody JSONObject req
     ) {
         try {
+            LOGGER.info("Logging in ...");
             String login = req.getAsString("login");
             String pass = req.getAsString("password");
 
             User user = userService.getUserByUsername(login);
 
             if (!Objects.equals(user.getPassword(), pass)) {
+                LOGGER.warn("ID: " +  user.getId() + " Invalid password.");
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
 
@@ -125,8 +130,10 @@ public class AppController {
             jo.put("role", user.getRole());
             jo.put("token", TokenManager.createToken(user));
 
+            LOGGER.info("Login successful." + "(ID: " + user.getId() + ", Username: " + user.getUsername() + ")");
             return new ResponseEntity<>(jo, HttpStatus.OK);
         } catch (NotFoundException e) {
+            LOGGER.error("Error happened.(User does not exist) --> " + e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -145,6 +152,7 @@ public class AppController {
             @RequestHeader(value = "auth") String authToken
     ) {
         try {
+            LOGGER.info("Filtering users ...");
             TokenManager.validToken(authToken, "admin");
 
             String defSortBy = "id";
@@ -213,12 +221,15 @@ public class AppController {
             finalJson.appendField("users", usersJson);
             finalJson.appendField("metadata", metadata);
 
+            LOGGER.info("List of users was filtered");
             return new ResponseEntity<>(finalJson, HttpStatus.OK);
         } catch (NotAuthorizedException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Required role: admin) --> " + e);
             return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         }
     }
@@ -229,16 +240,20 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
+            LOGGER.info("Setting user state ...");
             TokenManager.validToken(token, "admin");
             var user = userService.getUserById(userId);
             user.setBlocked(!user.isBlocked());
             userService.updateUser(user);
+            LOGGER.info("User status setting completed.(User ID: " + userId + ")");
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (NotAuthorizedException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Required role: admin) --> " + e);
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(User not found) --> " + e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -251,12 +266,16 @@ public class AppController {
             @PathVariable(value = "username") String username
     ) {
         try {
+            LOGGER.info("Getting user by login ...");
             User user = userService.getUserByUsername(username);
+            LOGGER.info("User got by login." + " ID: " + user.getId() + " Username: " + user.getUsername());
             return new ResponseEntity<>(createUserJson(user), HttpStatus.OK);
         } catch (NotFoundException e) {
+            LOGGER.error("Error happened.(User not found) --> " + e);
             e.printStackTrace();
             return  new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
         } catch (Exception e) {
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         }
@@ -267,6 +286,7 @@ public class AppController {
             @RequestBody User user
     ) {
         try {
+            LOGGER.info("Starting registration ...");
             if (user.getAddress() != null) {
                 addressService.saveAddress(user.getAddress());
             }
@@ -274,8 +294,10 @@ public class AppController {
                 phoneService.savePhone(user.getPhone());
             }
             user = userService.saveUser(user);
+            LOGGER.info("Registration complete. " + "(ID: " + user.getId() + ", Username: " + user.getUsername() + ")");
             return new ResponseEntity<>(createUserJson(user), HttpStatus.CREATED);
         } catch (Exception e) {
+            LOGGER.error("Error happened.(Incorrect data) --> " + e);
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
@@ -287,15 +309,19 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
+            LOGGER.info("Deleting user ...");
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             var delUser = userService.getUserById(userId);
             if (delUser.equals(user) || user.getRole().equals("admin")) {
                 userService.delUser(user);
+                LOGGER.info("User deleted."+ "(ID: " + user.getId() + ", Username: " + user.getUsername() + ")");
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             } else {
+                LOGGER.error("Error happened.(Requested role: admin)");
                 return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
             }
         } catch (NotFoundException e) {
+            LOGGER.error("Error happened.(User not found) --> " + e);
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
@@ -307,6 +333,7 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
+            LOGGER.info("Editing user ...)");
             User editUser = userService.getUserById(TokenManager.getIdByToken(token));
             if (user.getUsername() != null) {
                 editUser.setUsername(user.getUsername());
@@ -338,9 +365,11 @@ public class AppController {
                 }
             }
             editUser = userService.updateUser(editUser);
+            LOGGER.info("User was edited(ID: " + editUser.getId() + " Username: " + editUser.getUsername() + ")");
             return new ResponseEntity<>(createUserJson(editUser), HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
@@ -354,6 +383,7 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
+            LOGGER.info("Finding user orders ...");
             var user = userService.getUserById(TokenManager.getIdByToken(token));
 
             String defSortBy = "id";
@@ -389,7 +419,7 @@ public class AppController {
 
             finalJson.appendField("orders", ordersJson);
             finalJson.appendField("metadata", metadata);
-
+            LOGGER.info("Got the user orders.(Manager ID: " + user.getId() + " Username: " + user.getUsername() + ")");
             return new ResponseEntity<>(finalJson, HttpStatus.OK);
 
             /*List<Order> orders = orderService.getOrdersByUser(user);
@@ -409,9 +439,11 @@ public class AppController {
             return new ResponseEntity<>(resJson, HttpStatus.OK);*/
         } catch (NotFoundException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(User not found) --> " + e);
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         }
     }
@@ -423,6 +455,7 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
+            LOGGER.info("Adding order ...");
             User user = userService.getUserById(TokenManager.getIdByToken(token));
             List<Item> orderItems = new ArrayList<>();
             for (Long id : itemsID) {
@@ -452,12 +485,15 @@ public class AppController {
             }
             jo.put("order_content", itemsNames);
 
+            LOGGER.info("Order added.(ID: " + order.getId());
             return new ResponseEntity<>(jo, HttpStatus.CREATED);
         } catch (NotFoundException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Item not found) --> " + e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
@@ -468,14 +504,18 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
+            LOGGER.info("Deleting order ...");
             TokenManager.validToken(token, "admin");
             orderService.deleteOrder(orderId);
+            LOGGER.info("Order deleted.(Order ID:" + orderId + ")");
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (NotAuthorizedException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Required role: admin) --> " + e);
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Order not found) --> " + e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -487,14 +527,17 @@ public class AppController {
             @PathVariable(value = "restaurant_id") Long restaurantId
     ) {
         try {
+            LOGGER.info("Getting items by restaurant ...");
             List<Item> result = itemService.getByRestaurantId(restaurantId);
             List<JSONObject> resJson = new ArrayList<>();
             for (Item item : result) {
                 resJson.add(createItemJson(item));
             }
+            LOGGER.info("Got the items(Restaurant ID:" + restaurantId + ") ...");
             return new ResponseEntity<>(resJson, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Restaurant not found) --> " + e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -505,21 +548,25 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
+            LOGGER.info("Adding product ...");
             TokenManager.validToken(token, "manager");
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             var restaurant = restaurantService.getRestaurantById(restaurantId);
             if (restaurant.getManager() != user) {
+                LOGGER.warn("Other manager.");
                 return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
             }
             item.setRestaurant(restaurant);
             itemService.saveItem(item);
-
+            LOGGER.info("Product added.(Restaurant ID: " + restaurantId + ")");
             return new ResponseEntity<>(createItemJson(item), HttpStatus.CREATED);
         } catch (NotAuthorizedException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Required role: manager) --> " + e);
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
@@ -530,19 +577,24 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
+            LOGGER.info("Deleting product ...");
             TokenManager.validToken(token, "manager");
             var item = itemService.getItemById(itemId);
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             if (item.getRestaurant().getManager() != user) {
+                LOGGER.warn("Other manager.");
                 return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
             }
             itemService.deleteItemById(itemId);
+            LOGGER.info("Product deleted.(User ID: " + user.getId() + ")");
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (NotAuthorizedException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Required role: manager) --> " + e);
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         } catch (NotFoundException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Item not found) --> " + e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -554,6 +606,7 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
+            LOGGER.info("Editing item ...");
             Item editItem = itemService.getItemById(itemId);
             TokenManager.validToken(token, "manager");
             var user = userService.getUserById(TokenManager.getIdByToken(token));
@@ -588,12 +641,15 @@ public class AppController {
             jo.put("name", editItem.getName());
             jo.put("restaurant_name", editItem.getRestaurant().getName());
 
+            LOGGER.info("Item edited.(Item ID: " + editItem.getId() + ")");
             return new ResponseEntity<>(jo, HttpStatus.OK);
         } catch (NotFoundException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Item not found) --> " + e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
@@ -611,6 +667,7 @@ public class AppController {
             @RequestParam(value = "sort", required = false) String sort
     ) {
         try {
+            LOGGER.info("Filtering restaurants ...");
             String defSortBy = "id";
             String defSort = "desc";
             int defPage = 0;
@@ -670,9 +727,11 @@ public class AppController {
             finalJson.appendField("restaurants", restaurantsJson);
             finalJson.appendField("metadata", metadata);
 
+            LOGGER.info("Restaurants filtered.");
             return new ResponseEntity<>(finalJson, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
@@ -684,6 +743,7 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
+            LOGGER.info("Filtering restaurants managers ...");
             TokenManager.validToken(token, "manager");
             String defSortBy = "id";
             String defSort = "desc";
@@ -722,9 +782,11 @@ public class AppController {
             finalJson.appendField("restaurants", restaurantsJson);
             finalJson.appendField("metadata", metadata);
 
+            LOGGER.info("Managers filtered.");
             return new ResponseEntity<>(finalJson, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
@@ -735,15 +797,18 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
+            LOGGER.info("Adding restaurant ...");
             TokenManager.validToken(token, "manager");
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             restaurant.setManager(user);
             phoneService.savePhone(restaurant.getPhone());
             addressService.saveAddress(restaurant.getAddress());
             Restaurant res = restaurantService.saveRestaurant(restaurant);
+            LOGGER.info("Restaurant added.(Restaurant ID: " + restaurant.getId() + ")");
             return new ResponseEntity<>(res, HttpStatus.CREATED);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
@@ -754,16 +819,20 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
+            LOGGER.info("Setting restaurant state ...");
             TokenManager.validToken(token, "admin");
             var restaurant = restaurantService.getRestaurantById(restaurantId);
             restaurant.setBlocked(!restaurant.isBlocked());
             restaurantService.saveRestaurant(restaurant);
+            LOGGER.info("Restaurant state was set.(Restaurant ID: " + restaurant.getId() + ")");
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (NotAuthorizedException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Required role: admin) --> " + e);
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Restaurant not found) --> " + e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -774,16 +843,20 @@ public class AppController {
             @RequestHeader(value = "auth") String token
     ) {
         try {
+            LOGGER.info("Deleting restaurant ...");
             TokenManager.validToken(token, "manager");
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             var restaurant = restaurantService.getRestaurantById(restaurantId);
             if (restaurant.getManager() != user && !user.getRole().equals("admin")) {
+                LOGGER.warn("Other manager.)");
                 return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
             }
             restaurantService.deleteRestaurantById(restaurantId);
+            LOGGER.info("Restaurant was deleted.(Restaurant ID: " + restaurant.getId() + ")");
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Restaurant not found) --> " + e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -797,16 +870,20 @@ public class AppController {
             @RequestBody Review review
     ) {
         try {
+            LOGGER.info("Adding restaurant review ...");
             review.setRestaurant(restaurantService.getRestaurantById(restaurantId));
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             review.setUser(user);
             var addedReview = reviewService.saveReview(review);
+            LOGGER.info("Review added.(Review ID: " + review.getId() + ")");
             return new ResponseEntity<>(addedReview.getId(), HttpStatus.CREATED);
         } catch (NotFoundException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Restaurant not found) --> " + e);
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         }
     }
@@ -818,6 +895,7 @@ public class AppController {
             @RequestBody MultipartFile file
     ) {
         try {
+            LOGGER.info("Adding review photo ...");
             var user = userService.getUserById(TokenManager.getIdByToken(token));
             var review = reviewService.getByIdAndUser(reviewId, user);
             var filePath = new File(
@@ -826,6 +904,7 @@ public class AppController {
             );
             if (!filePath.exists()) {
                 if (!filePath.mkdirs()) {
+                    LOGGER.error("Error happened.(Internal server error)");
                     return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
@@ -837,15 +916,19 @@ public class AppController {
             reviewPhoto.setPhoto(photo);
             reviewPhoto.setReview(review);
             reviewPhotoService.saveReviewPhoto(reviewPhoto);
+            LOGGER.info("Review photo was added.(Photo ID: " + photo.getId() + ")");
             return new ResponseEntity<>(HttpStatus.CREATED);
         } catch (NotFoundException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Review not found) --> " + e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (IOException e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Internal server error) --> " + e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Error happened.(Bad request) --> " + e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
@@ -971,10 +1054,13 @@ public class AppController {
             @PathVariable(value = "id") Long reviewID
     ) {
         try {
+            LOGGER.info("Deleting review ...");
             var review = reviewService.getById(reviewID);
             reviewService.deleteById(review);
+            LOGGER.info("Review deleted.(Review ID: " + review.getId() + ")");
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (NotFoundException e) {
+            LOGGER.error("Error happened.(Review not found) --> " + e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }

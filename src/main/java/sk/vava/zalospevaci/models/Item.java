@@ -22,7 +22,7 @@ public class Item {
     private Integer price;
 
     @Column(name="description", nullable=false)
-    @Size(max = 10, message = "Too many symbols (255 max)")
+    @Size(max = 255, message = "Too many symbols (255 max)")
     private String description;
 
     @OneToMany(mappedBy="item", cascade = CascadeType.REMOVE, orphanRemoval = true)

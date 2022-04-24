@@ -13,10 +13,6 @@ public class ItemService {
     @Autowired
     private ItemRepository itemRepository;
 
-    public List<Item> findAllItems() {
-        return itemRepository.findAll();
-    }
-
     public List<Item> getByRestaurantId(Long restaurantId) throws NotFoundException {
         var items = itemRepository.findAllByRestaurantId(restaurantId).orElse(null);
         if (items == null) {
@@ -35,10 +31,6 @@ public class ItemService {
 
     public Item saveItem(Item item) {
         return itemRepository.save(item);
-    }
-
-    public void deleteItem(Item item) {
-        itemRepository.delete(item);
     }
 
     public void deleteItemById(Long id) {

@@ -22,6 +22,8 @@
         <mapping class="sk.vava.zalospevaci.models.Restaurant" />
         <mapping class="sk.vava.zalospevaci.models.Review" />
         <mapping class="sk.vava.zalospevaci.models.Item" />
+        <mapping class="sk.vava.zalospevaci.models.OrderItem" />
+        <mapping class="sk.vava.zalospevaci.models.Order" />
         <mapping class="sk.vava.zalospevaci.models.Photo" />
         <mapping class="sk.vava.zalospevaci.models.ReviewPhoto" />
 

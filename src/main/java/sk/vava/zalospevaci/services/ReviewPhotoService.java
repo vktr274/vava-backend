@@ -13,10 +13,6 @@ public class ReviewPhotoService {
     @Autowired
     private ReviewPhotoRepository reviewPhotoRepository;
 
-    public List<ReviewPhoto> getAllReviewPhotos() {
-        return reviewPhotoRepository.findAll();
-    }
-
     public void saveReviewPhoto(ReviewPhoto reviewPhoto) {
         reviewPhotoRepository.save(reviewPhoto);
     }

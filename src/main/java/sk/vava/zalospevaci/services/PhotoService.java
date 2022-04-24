@@ -6,16 +6,10 @@ import sk.vava.zalospevaci.exceptions.NotFoundException;
 import sk.vava.zalospevaci.models.Photo;
 import sk.vava.zalospevaci.repositories.PhotoRepository;
 
-import java.util.List;
-
 @Service
 public class PhotoService {
     @Autowired
     private PhotoRepository photoRepository;
-
-    public List<Photo> getAllPhotos() {
-        return photoRepository.findAll();
-    }
 
     public Photo getById(Long id) throws NotFoundException {
         var photo = photoRepository.findById(id).orElse(null);
@@ -27,9 +21,5 @@ public class PhotoService {
 
     public Photo savePhoto(Photo photo) {
         return photoRepository.save(photo);
-    }
-
-    public void deletePhoto(Photo photo) {
-        photoRepository.delete(photo);
     }
 }

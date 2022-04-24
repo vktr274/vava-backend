@@ -3,10 +3,8 @@ package sk.vava.zalospevaci.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import sk.vava.zalospevaci.artifacts.UserRole;
-import sk.vava.zalospevaci.exceptions.NotAuthorizedException;
 import sk.vava.zalospevaci.exceptions.NotFoundException;
 import sk.vava.zalospevaci.models.Address;
 import sk.vava.zalospevaci.models.Phone;
@@ -30,14 +28,6 @@ public class UserService {
         var user = userRepository.findById(id).orElse(null);
         if (user == null) {
             throw new NotFoundException(id.toString() + " not found");
-        }
-        return user;
-    }
-
-    public User getUserByBasicAuth(Long id, String basicAuthToken) throws NotFoundException, NotAuthorizedException {
-        var user = getUserById(id);
-        if (!HttpHeaders.encodeBasicAuth(user.getUsername(), user.getPassword(), null).equals(basicAuthToken)) {
-            throw new NotAuthorizedException("not authorized");
         }
         return user;
     }

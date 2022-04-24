@@ -4,14 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import sk.vava.zalospevaci.exceptions.NotAuthorizedException;
 import sk.vava.zalospevaci.exceptions.NotFoundException;
 import sk.vava.zalospevaci.models.Restaurant;
 import sk.vava.zalospevaci.models.Review;
 import sk.vava.zalospevaci.models.User;
 import sk.vava.zalospevaci.repositories.ReviewRepository;
-
-import java.util.List;
 
 @Service
 public class ReviewService {

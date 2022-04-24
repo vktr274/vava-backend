@@ -418,23 +418,6 @@ public class AppController {
             finalJson.appendField("metadata", metadata);
             LOGGER.info("Got the orders.(User ID: " + user.getId() + " Username: " + user.getUsername() + ")");
             return new ResponseEntity<>(finalJson, HttpStatus.OK);
-
-            /*List<Order> orders = orderService.getOrdersByUser(user);
-            List<JSONObject> resJson = new ArrayList<>();
-            for (Order order : orders) {
-                JSONObject tmp = new JSONObject();
-                tmp.put("id", order.getId());
-                tmp.put("price", order.getPrice());
-                tmp.put("note", order.getNote());
-                tmp.put("ordered_at", order.getOrderedAt());
-                List<String> items = new ArrayList<>();
-                for (OrderItem orderItem : order.getOrderItems()) {
-                    items.add(orderItem.getItem().getName());
-                }
-                tmp.put("items", items);
-                resJson.add(tmp);
-            }
-            return new ResponseEntity<>(resJson, HttpStatus.OK);*/
         } catch (NotFoundException e) {
             e.printStackTrace();
             LOGGER.error("Error happened.(User not found) --> " + e);

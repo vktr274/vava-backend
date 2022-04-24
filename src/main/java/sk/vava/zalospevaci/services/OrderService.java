@@ -9,30 +9,15 @@ import sk.vava.zalospevaci.models.Order;
 import sk.vava.zalospevaci.models.User;
 import sk.vava.zalospevaci.repositories.OrderRepository;
 
-import javax.persistence.NoResultException;
-import java.util.List;
-
 @Service
 public class OrderService {
     @Autowired
     private OrderRepository orderRepository;
 
-    public List<Order> getAllOrders() {
-        return orderRepository.findAll();
-    }
-
-    public List<Order> getOrdersByUser(User user) {
-        var orders = orderRepository.findAllByUser(user).orElse(null);
-        if (orders == null) {
-            throw new NoResultException("no orders for " + user.getUsername());
-        }
-        return orders;
-    }
-
     public Page<Order> getByUser(User user, Pageable pageable)
             throws NotFoundException
     {
-        Page<Order> orders = null;
+        Page<Order> orders;
         if (user.getRole().equals("admin")) {
             orders = orderRepository.findAll(pageable);
         } else {

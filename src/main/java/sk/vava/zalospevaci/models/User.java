@@ -15,7 +15,6 @@ public class User {
     @Column(name="id", nullable=false)
     private Long id;
 
-//    @Filter(name = "usernameFilter", condition = "username ILIKE :username%")
     @Column(name="username", unique=true, nullable=false)
     private String username;
 

@@ -92,6 +92,21 @@ public class AppController {
         return jo;
     }
 
+    private JSONObject createOrderJson(Order order) {
+        JSONObject jo = new JSONObject();
+        jo.put("price", order.getPrice());
+        jo.put("note", order.getNote());
+        jo.put("ordered_at", order.getOrderedAt());
+        jo.put("user", order.getUser().getUsername());
+        List<String> items = new ArrayList<>();
+        for (OrderItem orderItem : order.getOrderItems()) {
+            items.add(orderItem.getItem().getName());
+        }
+        jo.put("items", items);
+
+        return jo;
+    }
+
     @PostMapping("/token")
     public ResponseEntity<JSONObject> getToken(
             @RequestBody JSONObject req
@@ -333,12 +348,51 @@ public class AppController {
     /* ORDERS calls */
 
     @GetMapping("/orders")
-    public ResponseEntity<List<JSONObject>> userOrders(
+    public ResponseEntity<JSONObject> userOrders(
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "per_page", required = false) Integer perPage,
             @RequestHeader(value = "auth") String token
     ) {
         try {
             var user = userService.getUserById(TokenManager.getIdByToken(token));
-            List<Order> orders = orderService.getOrdersByUser(user);
+
+            String defSortBy = "id";
+            String defSort = "desc";
+            int defPage = 0;
+            int defPerPage = 10;
+
+            if (page != null) {
+                defPage = page;
+            }
+            if (perPage != null) {
+                defPerPage = perPage;
+            }
+
+            Page<Order> orders;
+            Sort sortObj = Sort.by(defSortBy).descending();
+            Pageable pageable = PageRequest.of(defPage, defPerPage, sortObj);
+
+            orders = orderService.getByUser(user, pageable);
+
+            JSONObject finalJson = new JSONObject();
+            List<JSONObject> ordersJson = new ArrayList<>();
+            for (var order : orders) {
+                ordersJson.add(createOrderJson(order));
+            }
+            JSONObject metadata = new JSONObject();
+            metadata.appendField("page", defPage);
+            metadata.appendField("per_page", defPerPage);
+            metadata.appendField("sort", defSort);
+            metadata.appendField("sort_by", defSortBy);
+            metadata.appendField("total_pages", orders.getTotalPages());
+            metadata.appendField("total_elements", orders.getTotalElements());
+
+            finalJson.appendField("orders", ordersJson);
+            finalJson.appendField("metadata", metadata);
+
+            return new ResponseEntity<>(finalJson, HttpStatus.OK);
+
+            /*List<Order> orders = orderService.getOrdersByUser(user);
             List<JSONObject> resJson = new ArrayList<>();
             for (Order order : orders) {
                 JSONObject tmp = new JSONObject();
@@ -353,7 +407,7 @@ public class AppController {
                 tmp.put("items", items);
                 resJson.add(tmp);
             }
-            return new ResponseEntity<>(resJson, HttpStatus.OK);
+            return new ResponseEntity<>(resJson, HttpStatus.OK);*/
         } catch (NotFoundException e) {
             e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);

@@ -1,7 +1,10 @@
 package sk.vava.zalospevaci.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import sk.vava.zalospevaci.exceptions.NotFoundException;
 import sk.vava.zalospevaci.models.Order;
 import sk.vava.zalospevaci.models.User;
 import sk.vava.zalospevaci.repositories.OrderRepository;
@@ -22,6 +25,23 @@ public class OrderService {
         var orders = orderRepository.findAllByUser(user).orElse(null);
         if (orders == null) {
             throw new NoResultException("no orders for " + user.getUsername());
+        }
+        return orders;
+    }
+
+    public Page<Order> getByUser(User user, Pageable pageable)
+            throws NotFoundException
+    {
+        Page<Order> orders = null;
+        if (user.getRole().equals("admin")) {
+            orders = orderRepository.findAll(pageable);
+        } else {
+            orders = orderRepository.findAllByUser(user, pageable).orElse(null);
+        }
+        if (orders == null) {
+            throw new NotFoundException(
+                    "orders of user '" + user.getUsername() + "' are not found"
+            );
         }
         return orders;
     }

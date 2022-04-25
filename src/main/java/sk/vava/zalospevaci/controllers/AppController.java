@@ -126,6 +126,11 @@ public class AppController {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
 
+            if (user.isBlocked()) {
+                LOGGER.warn("ID: " +  user.getId() + " user is blocked. Access denied.");
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            }
+
             JSONObject jo = new JSONObject();
             jo.put("role", user.getRole());
             jo.put("token", TokenManager.createToken(user));
